@@ -1,16 +1,11 @@
-import { useEffect } from 'react'
 import { View } from 'react-native'
-import { router } from 'expo-router'
+import { Redirect } from 'expo-router'
 import { useAlarm } from '../context/AlarmContext'
 import { palette } from '../constants/theme'
 
 /**
  * Entry point — holds on a dark screen while storage hydrates,
- * then routes imperatively via router.replace() once ready.
- *
- * Using router.replace() in useEffect instead of <Redirect> avoids
- * a known Expo Router edge case where a component switching from
- * rendering <View> to <Redirect> on re-render can fail silently.
+ * then redirects declaratively once ready.
  *
  * idle       → /settings
  * wake       → /alarm/wake
@@ -20,25 +15,17 @@ import { palette } from '../constants/theme'
 export default function Index() {
   const { state } = useAlarm()
 
-  useEffect(() => {
-    if (!state.isHydrated) return
+  // Hold on dark screen until AsyncStorage hydrates
+  if (!state.isHydrated) {
+    return <View style={{ flex: 1, backgroundColor: palette.navy900 }} />
+  }
 
-    switch (state.phase) {
-      case 'idle':
-        router.replace('/settings')
-        break
-      case 'wake':
-        router.replace('/alarm/wake')
-        break
-      case 'escalation':
-        router.replace('/alarm/escalation')
-        break
-      case 'briefing':
-        router.replace('/alarm/briefing')
-        break
-    }
-  }, [state.isHydrated, state.phase])
+  const destinations: Record<typeof state.phase, string> = {
+    idle: '/settings',
+    wake: '/alarm/wake',
+    escalation: '/alarm/escalation',
+    briefing: '/alarm/briefing',
+  }
 
-  // Dark hold screen — matches splash background, invisible to user
-  return <View style={{ flex: 1, backgroundColor: palette.navy900 }} />
+  return <Redirect href={destinations[state.phase] as any} />
 }
