@@ -2,18 +2,14 @@
  * NiceClock Design System
  *
  * Three emotional phases, one visual thread.
- * Amber is the constant — it appears as a warm glow on wake,
- * as an accent on briefing, and as a warning tone under red on escalation.
+ * Amber is the constant through wake, briefing, and escalation.
  *
  * Base unit: 8px
  * Horizontal screen padding: 28px
  * Safe area respected everywhere
  */
 
-// ─── Color Tokens ───────────────────────────────────────────────────────────
-
 export const palette = {
-  // Neutrals
   black: '#000000',
   trueBlack: '#030608',
   navy900: '#050D1A',
@@ -21,13 +17,11 @@ export const palette = {
   navy700: '#0F2040',
   navy600: '#162D55',
 
-  // Amber / Gold — the constant thread
   amber400: '#F5C97A',
   amber500: '#E8943A',
   amber600: '#C8793A',
   amber700: '#A85E20',
 
-  // Escalation reds
   red900: '#0F0505',
   red800: '#1A0808',
   red700: '#3D0A0A',
@@ -36,12 +30,10 @@ export const palette = {
   red400: '#C0392B',
   red300: '#E74C3C',
 
-  // Briefing light palette
   cream100: '#FAF7F2',
   cream200: '#F2EDE4',
   cream300: '#E8DFD0',
 
-  // Text
   textCream: '#F0EAD6',
   textMuted: '#8B9CB0',
   textSubtle: '#4A5568',
@@ -50,6 +42,18 @@ export const palette = {
 } as const
 
 export const colors = {
+  edition: {
+    bg: palette.cream100,
+    panelBg: 'rgba(255, 255, 255, 0.88)',
+    panelStrong: '#F7F2E8',
+    panelBorder: palette.cream300,
+    headline: palette.textDark,
+    body: palette.textMedium,
+    muted: palette.textSubtle,
+    accent: palette.amber600,
+    accentSoft: 'rgba(200, 121, 58, 0.14)',
+    clockBorder: '#D9CCB7',
+  },
   wake: {
     gradientColors: [palette.navy900, '#0D1F3C', '#1A2F50'] as const,
     gradientLocations: [0, 0.5, 1] as const,
@@ -62,6 +66,11 @@ export const colors = {
     ctaGlow: 'rgba(232, 148, 58, 0.35)',
     brandText: palette.textMuted,
     divider: 'rgba(240, 234, 214, 0.1)',
+    surfaceBg: 'rgba(8, 18, 34, 0.72)',
+    surfaceStrong: 'rgba(10, 24, 44, 0.92)',
+    surfaceBorder: 'rgba(240, 234, 214, 0.09)',
+    surfaceMuted: 'rgba(240, 234, 214, 0.48)',
+    surfaceSubtle: 'rgba(240, 234, 214, 0.24)',
   },
   escalation: {
     gradientColors: [palette.red900, palette.red800, palette.red700] as const,
@@ -91,57 +100,44 @@ export const colors = {
   },
 } as const
 
-// ─── Typography Tokens ───────────────────────────────────────────────────────
-
 export const type = {
-  // Clock hero — the centerpiece of the wake screen
   clockSize: 92,
   clockWeight: '200' as const,
   clockLetterSpacing: -4,
   clockLineHeight: 96,
 
-  // Large display numbers (escalation counter)
   displaySize: 64,
   displayWeight: '300' as const,
   displayLetterSpacing: -2,
 
-  // Screen headlines
   headlineSize: 28,
   headlineLargeSize: 34,
   headlineWeight: '600' as const,
   headlineLetterSpacing: -0.5,
 
-  // Card values
   cardValueSize: 22,
   cardValueWeight: '600' as const,
   cardValueLetterSpacing: -0.3,
 
-  // Labels — uppercase, wide
   labelSize: 11,
   labelWeight: '600' as const,
   labelLetterSpacing: 1.8,
 
-  // Secondary labels
   sublabelSize: 13,
   sublabelWeight: '500' as const,
   sublabelLetterSpacing: 0.1,
 
-  // Body
   bodySize: 16,
   bodyWeight: '400' as const,
 
-  // CTA
   ctaSize: 17,
   ctaWeight: '600' as const,
   ctaLetterSpacing: 0.2,
 
-  // Brand wordmark
   brandSize: 12,
   brandWeight: '500' as const,
   brandLetterSpacing: 3,
 } as const
-
-// ─── Spacing Tokens ──────────────────────────────────────────────────────────
 
 export const spacing = {
   xs: 4,
@@ -152,12 +148,9 @@ export const spacing = {
   xxl: 48,
   xxxl: 64,
 
-  // Screen-level
-  screenH: 28,   // horizontal padding
-  screenTop: 16, // additional top padding beyond safe area
+  screenH: 28,
+  screenTop: 16,
 } as const
-
-// ─── Radius Tokens ───────────────────────────────────────────────────────────
 
 export const radius = {
   sm: 8,
@@ -167,10 +160,6 @@ export const radius = {
   pill: 100,
   circle: 9999,
 } as const
-
-// ─── Shadow Tokens ───────────────────────────────────────────────────────────
-// React Native shadows are platform-split.
-// These are iOS shadow props. For Android, use elevation.
 
 export const shadows = {
   card: {
@@ -203,8 +192,6 @@ export const shadows = {
   }),
 } as const
 
-// ─── Animation Durations ─────────────────────────────────────────────────────
-
 export const duration = {
   instant: 0,
   fast: 200,
@@ -212,7 +199,6 @@ export const duration = {
   slow: 500,
   verySlow: 800,
 
-  // Ambient loops
   pulse: 2000,
   breathe: 3000,
 } as const

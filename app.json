@@ -30,7 +30,14 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-audio",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "NiceClock uses your location to show local weather and nearby headlines in Morning Edition."
+        }
+      ]
     ]
   }
 }

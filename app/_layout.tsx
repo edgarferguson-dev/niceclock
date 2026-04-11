@@ -3,15 +3,6 @@ import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { AlarmProvider } from '../context/AlarmContext'
 
-/**
- * Root layout — wraps the entire app.
- *
- * Responsibilities:
- * - AlarmProvider: global state for the alarm flow
- * - SafeAreaProvider: required by useSafeAreaInsets in Screen component
- * - StatusBar: always light (white) — all screens are dark or light-handled individually
- * - Stack navigator with animations and no visible header chrome
- */
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
@@ -26,6 +17,7 @@ export default function RootLayout() {
         >
           <Stack.Screen name="index" />
           <Stack.Screen name="settings" options={{ animation: 'fade' }} />
+          <Stack.Screen name="activities" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="alarm/wake" />
           <Stack.Screen
             name="alarm/escalation"

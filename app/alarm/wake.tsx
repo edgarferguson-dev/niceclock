@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import Animated, {
   useSharedValue,
@@ -9,40 +9,45 @@ import Animated, {
 } from 'react-native-reanimated'
 import { router } from 'expo-router'
 
-import { Screen } from '../../components/Screen'
-import { TimeDisplay } from '../../components/TimeDisplay'
 import { GlowButton } from '../../components/GlowButton'
+import { ProductMark } from '../../components/ProductMark'
+import { Screen } from '../../components/Screen'
 import { StatusPill } from '../../components/StatusPill'
-import { useAlarm } from '../../context/AlarmContext'
-import { useAlarmTimer } from '../../hooks/useAlarmTimer'
-import { useVoice } from '../../hooks/useVoice'
-import { voiceScripts } from '../../data/mockDay'
+import { TimeDisplay } from '../../components/TimeDisplay'
+import { alarmAudioConfig } from '../../constants/audio'
 import { colors, spacing, type } from '../../constants/theme'
+import { useAlarm } from '../../context/AlarmContext'
+import { voiceScripts } from '../../data/mockDay'
+import { useAlarmSound } from '../../hooks/useAlarmSound'
+import { useAlarmTimer } from '../../hooks/useAlarmTimer'
+import { useMorningEdition } from '../../hooks/useMorningEdition'
+import { useVoice } from '../../hooks/useVoice'
 
-/**
- * Wake Screen — the first moment of the alarm experience.
- *
- * Visual intent: deep navy darkness, a glowing clock in the center,
- * an amber CTA rising from the bottom. Calm but alive.
- * The screen breathes — it is not static.
- *
- * Flow:
- * - Voice fires 1s after mount
- * - Escalation timer starts immediately (30s)
- * - "I'm Awake" → confirmAwake() → navigate to briefing
- * - Timer expiring → triggerEscalation() → navigate to escalation
- */
 export default function WakeScreen() {
   const { confirmAwake, triggerEscalation } = useAlarm()
   const { speak } = useVoice()
+  const { playWake, stop } = useAlarmSound()
+  const { data: edition } = useMorningEdition()
+  const hasSpokenRef = useRef(false)
 
-  // Voice: fires once, 1 second after mount
   useEffect(() => {
-    const id = setTimeout(() => speak(voiceScripts.wake), 1000)
-    return () => clearTimeout(id)
-  }, [speak])
+    playWake()
+  }, [playWake])
 
-  // Escalation timer: 30s of silence → escalation screen
+  useEffect(() => {
+    if (hasSpokenRef.current) return
+
+    const script = edition?.narration ?? voiceScripts.wake
+    const delay = edition ? alarmAudioConfig.wake.voiceDelayMs : alarmAudioConfig.wake.voiceDelayMs + 900
+    const id = setTimeout(() => {
+      if (hasSpokenRef.current) return
+      hasSpokenRef.current = true
+      speak(script)
+    }, delay)
+
+    return () => clearTimeout(id)
+  }, [edition, speak])
+
   useAlarmTimer({
     delayMs: 30_000,
     onEscalate: () => {
@@ -51,14 +56,12 @@ export default function WakeScreen() {
     },
   })
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    await stop()
     confirmAwake()
     router.replace('/alarm/briefing')
   }
 
-  // ── Entrance animations ──────────────────────────────────────────────────
-
-  // Top section: brand + status pill fade in
   const topOpacity = useSharedValue(0)
   useEffect(() => {
     topOpacity.value = withDelay(
@@ -68,7 +71,6 @@ export default function WakeScreen() {
   }, [topOpacity])
   const topStyle = useAnimatedStyle(() => ({ opacity: topOpacity.value }))
 
-  // Bottom CTA: slides up from below
   const ctaTranslateY = useSharedValue(32)
   const ctaOpacity = useSharedValue(0)
   useEffect(() => {
@@ -86,21 +88,17 @@ export default function WakeScreen() {
     opacity: ctaOpacity.value,
   }))
 
-  // ── Render ───────────────────────────────────────────────────────────────
-
   return (
     <Screen
       gradient={colors.wake.gradientColors}
       gradientLocations={[0, 0.55, 1] as const}
       style={styles.screen}
     >
-      {/* Top: brand + alarm status */}
       <Animated.View style={[styles.top, topStyle]}>
-        <Text style={styles.brand}>NICECLOCK</Text>
+        <ProductMark />
         <StatusPill label="Alarm active" variant="dot" />
       </Animated.View>
 
-      {/* Center: hero time display */}
       <View style={styles.center}>
         <TimeDisplay
           textColor={colors.wake.clockText}
@@ -110,16 +108,16 @@ export default function WakeScreen() {
           animateIn
         />
 
-        {/* Soft divider below clock */}
         <View style={styles.divider} />
 
-        {/* Wake prompt */}
         <Animated.View style={topStyle}>
           <Text style={styles.prompt}>Are you awake?</Text>
+          {edition?.topStories[0]?.title ? (
+            <Text style={styles.storyPrompt}>{edition.topStories[0].title}</Text>
+          ) : null}
         </Animated.View>
       </View>
 
-      {/* Bottom: CTA */}
       <Animated.View style={[styles.bottom, ctaStyle]}>
         <GlowButton
           label="I'm Awake"
@@ -138,15 +136,8 @@ const styles = StyleSheet.create({
   top: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingTop: spacing.sm,
-  },
-  brand: {
-    fontSize: type.brandSize,
-    fontWeight: type.brandWeight,
-    letterSpacing: type.brandLetterSpacing,
-    color: 'rgba(240, 234, 214, 0.3)',
-    textTransform: 'uppercase',
   },
   center: {
     flex: 1,
@@ -164,6 +155,16 @@ const styles = StyleSheet.create({
     fontWeight: type.sublabelWeight,
     letterSpacing: 0.5,
     color: 'rgba(240, 234, 214, 0.45)',
+    textAlign: 'center',
+  },
+  storyPrompt: {
+    marginTop: spacing.sm,
+    maxWidth: 260,
+    fontSize: type.sublabelSize,
+    fontWeight: type.sublabelWeight,
+    color: 'rgba(240, 234, 214, 0.68)',
+    lineHeight: 20,
+    textAlign: 'center',
   },
   bottom: {
     paddingBottom: spacing.md,

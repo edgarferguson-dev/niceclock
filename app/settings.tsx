@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withDelay,
   Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
 } from 'react-native-reanimated'
 import { router } from 'expo-router'
 
+import { GlowButton } from '../components/GlowButton'
+import { ProductMark } from '../components/ProductMark'
 import { Screen } from '../components/Screen'
 import { TimePicker } from '../components/TimePicker'
-import { GlowButton } from '../components/GlowButton'
-import { StatusPill } from '../components/StatusPill'
+import { colors, radius, shadows, spacing, type } from '../constants/theme'
 import { useAlarm } from '../context/AlarmContext'
-import { colors, spacing, type, palette } from '../constants/theme'
+import { useCurrentTime } from '../hooks/useCurrentTime'
+import { useMorningEdition } from '../hooks/useMorningEdition'
+import { useVoice } from '../hooks/useVoice'
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-/** "07:30" → "7:30 AM" */
 function displayTime(time: string): string {
   const [hStr, mStr] = time.split(':')
   const h24 = parseInt(hStr, 10)
@@ -27,28 +27,14 @@ function displayTime(time: string): string {
   return `${h12}:${mStr} ${ampm}`
 }
 
-// ─── Screen ──────────────────────────────────────────────────────────────────
-
-/**
- * Settings Screen — the idle home of NiceClock.
- *
- * Same dark atmosphere as the wake screen — the user lives in this space
- * until the alarm fires. Transitioning to the wake screen feels continuous,
- * not like entering a different app.
- *
- * Local `localTime` state holds edits until "Set Alarm" is confirmed.
- * On confirm: persists to storage, fires alarm phase, navigates to wake.
- *
- * Production note: "Set Alarm" would schedule an Expo Notification instead
- * of immediately firing. The nav to /alarm/wake would wait for the trigger.
- */
 export default function SettingsScreen() {
   const { state, setAlarmTime, fireAlarm } = useAlarm()
-
-  // Local edit state — committed on "Set Alarm"
   const [localTime, setLocalTime] = useState(state.alarmTime)
+  const now = useCurrentTime()
+  const { width } = useWindowDimensions()
+  const { data: edition, isLoading } = useMorningEdition()
+  const { speak } = useVoice()
 
-  // Sync if context alarmTime changes after hydration resolves
   useEffect(() => {
     setLocalTime(state.alarmTime)
   }, [state.alarmTime])
@@ -59,147 +45,373 @@ export default function SettingsScreen() {
     router.replace('/alarm/wake')
   }
 
-  // ── Entrance animations ──────────────────────────────────────────────────
+  const handleOpenActivities = () => {
+    router.push('/activities')
+  }
 
-  const topOpacity = useSharedValue(0)
-  useEffect(() => {
-    topOpacity.value = withDelay(
-      100,
-      withTiming(1, { duration: 500, easing: Easing.out(Easing.cubic) })
-    )
-  }, [topOpacity])
-  const topStyle = useAnimatedStyle(() => ({ opacity: topOpacity.value }))
+  const heroOpacity = useSharedValue(0)
+  const heroY = useSharedValue(18)
+  const footerOpacity = useSharedValue(0)
+  const footerY = useSharedValue(18)
 
-  const pickerOpacity = useSharedValue(0)
-  const pickerY = useSharedValue(20)
   useEffect(() => {
-    pickerOpacity.value = withDelay(
-      250,
-      withTiming(1, { duration: 550, easing: Easing.out(Easing.cubic) })
-    )
-    pickerY.value = withDelay(
-      250,
-      withTiming(0, { duration: 550, easing: Easing.out(Easing.cubic) })
-    )
-  }, [pickerOpacity, pickerY])
-  const pickerStyle = useAnimatedStyle(() => ({
-    opacity: pickerOpacity.value,
-    transform: [{ translateY: pickerY.value }],
+    heroOpacity.value = withDelay(80, withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) }))
+    heroY.value = withDelay(80, withTiming(0, { duration: 520, easing: Easing.out(Easing.cubic) }))
+    footerOpacity.value = withDelay(260, withTiming(1, { duration: 500, easing: Easing.out(Easing.cubic) }))
+    footerY.value = withDelay(260, withTiming(0, { duration: 500, easing: Easing.out(Easing.cubic) }))
+  }, [footerOpacity, footerY, heroOpacity, heroY])
+
+  const heroStyle = useAnimatedStyle(() => ({
+    opacity: heroOpacity.value,
+    transform: [{ translateY: heroY.value }],
   }))
 
-  const ctaOpacity = useSharedValue(0)
-  const ctaY = useSharedValue(16)
-  useEffect(() => {
-    ctaOpacity.value = withDelay(
-      450,
-      withTiming(1, { duration: 500, easing: Easing.out(Easing.cubic) })
-    )
-    ctaY.value = withDelay(
-      450,
-      withTiming(0, { duration: 500, easing: Easing.out(Easing.cubic) })
-    )
-  }, [ctaOpacity, ctaY])
-  const ctaStyle = useAnimatedStyle(() => ({
-    opacity: ctaOpacity.value,
-    transform: [{ translateY: ctaY.value }],
+  const footerStyle = useAnimatedStyle(() => ({
+    opacity: footerOpacity.value,
+    transform: [{ translateY: footerY.value }],
   }))
 
-  // ── Render ───────────────────────────────────────────────────────────────
+  const stageSize = Math.min(width - spacing.screenH * 2, 380)
+  const clockSize = Math.min(stageSize * 0.78, 300)
+  const formattedDate = useMemo(
+    () => new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+    }).format(now),
+    [now]
+  )
+
+  const topStory = edition?.topStories[0]
+  const localStory = edition?.localStories[0]
+  const trendingStory = edition?.trendingStories[0]
+  const secondTopStory = edition?.topStories[1]
+
+  const readStory = (headline?: string, source?: string) => {
+    if (!headline) return
+    const sourceLine = source ? ` Source: ${source}.` : ''
+    speak(`${headline}.${sourceLine}`)
+  }
 
   return (
-    <Screen
-      gradient={colors.wake.gradientColors}
-      gradientLocations={[0, 0.55, 1] as const}
-      style={styles.screen}
-    >
-      {/* Top: brand + status */}
-      <Animated.View style={[styles.top, topStyle]}>
-        <Text style={styles.brand}>NICECLOCK</Text>
-        <StatusPill label="Ready" variant="dot" />
-      </Animated.View>
-
-      {/* Center: label + picker + confirmation */}
-      <View style={styles.center}>
-        <Animated.View style={[styles.pickerBlock, pickerStyle]}>
-          <Text style={styles.label}>WAKE TIME</Text>
-
-          <TimePicker value={localTime} onChange={setLocalTime} />
-
-          {/* Confirmation text — updates live as user adjusts */}
-          <Text style={styles.confirmation}>
-            Wake me at{' '}
-            <Text style={styles.confirmationAccent}>{displayTime(localTime)}</Text>
+    <Screen solidBg={colors.edition.bg} style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Animated.View style={[styles.masthead, heroStyle]}>
+          <Text style={styles.editionLine}>{formattedDate}</Text>
+          <View style={styles.mastheadRule} />
+          <View style={styles.centeredMark}>
+            <ProductMark tone="warm" />
+          </View>
+          <View style={styles.mastheadRule} />
+          <Text style={styles.locationLine}>
+            {edition ? `${edition.locationLabel} � ${edition.weather.temperatureF}� � ${edition.weather.condition}` : 'Loading your local edition'}
           </Text>
         </Animated.View>
-      </View>
 
-      {/* Bottom: CTA */}
-      <Animated.View style={[styles.bottom, ctaStyle]}>
-        {/* Divider */}
-        <View style={styles.divider} />
+        <Animated.View style={[styles.featureStage, heroStyle]}>
+          <Pressable
+            onPress={() => readStory(edition ? `${edition.weather.condition}. High ${edition.weather.highF}. Low ${edition.weather.lowF}.` : undefined, edition?.locationLabel)}
+            style={({ pressed }) => [styles.orbitCard, styles.weatherCard, pressed && styles.pressedCard]}
+          >
+            <Text style={styles.cardEyebrow}>Weather</Text>
+            <Text style={styles.cardHeadline}>{edition ? `${edition.weather.temperatureF}� and ${edition.weather.condition}` : 'Loading forecast'}</Text>
+            <Text style={styles.cardMeta}>{edition ? `High ${edition.weather.highF}� � Low ${edition.weather.lowF}�` : 'Gathering conditions'}</Text>
+          </Pressable>
 
-        <GlowButton
-          label="Set Alarm"
-          onPress={handleSetAlarm}
-          variant="calm"
-        />
+          <Pressable
+            onPress={() => readStory(localStory?.title, localStory?.source)}
+            style={({ pressed }) => [styles.orbitCard, styles.localCard, pressed && styles.pressedCard]}
+          >
+            <Text style={styles.cardEyebrow}>Local lead</Text>
+            <Text style={styles.cardHeadline}>{localStory?.title ?? 'Finding nearby headlines'}</Text>
+            <Text style={styles.cardMeta}>{localStory?.source ?? 'Morning Edition Desk'}</Text>
+          </Pressable>
+
+          <View style={[styles.clockShell, { width: clockSize, height: clockSize, borderRadius: clockSize / 2 }]}>
+            <Text style={styles.clockEyebrow}>Set for tomorrow</Text>
+            <Text style={styles.clockLabel}>{displayTime(localTime)}</Text>
+            <TimePicker value={localTime} onChange={setLocalTime} tone="paper" />
+            <Text style={styles.clockNote}>A retro bedside dial for the next edition.</Text>
+          </View>
+
+          <Pressable
+            onPress={() => readStory(topStory?.title, topStory?.source)}
+            style={({ pressed }) => [styles.orbitCard, styles.topStoryCard, pressed && styles.pressedCard]}
+          >
+            <Text style={styles.cardEyebrow}>Top story</Text>
+            <Text style={styles.cardHeadline}>{topStory?.title ?? 'Loading top headlines'}</Text>
+            <Text style={styles.cardMeta}>{topStory?.source ?? 'National desk'}</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => readStory(trendingStory?.title, trendingStory?.source)}
+            style={({ pressed }) => [styles.orbitCard, styles.trendingCard, pressed && styles.pressedCard]}
+          >
+            <Text style={styles.cardEyebrow}>Trending</Text>
+            <Text style={styles.cardHeadline}>{trendingStory?.title ?? 'Collecting what is trending now'}</Text>
+            <Text style={styles.cardMeta}>{trendingStory?.source ?? 'Trending desk'}</Text>
+          </Pressable>
+        </Animated.View>
+
+        <Animated.View style={[styles.frontPagePanel, heroStyle]}>
+          <Text style={styles.frontPageTitle}>Front page</Text>
+          <Text style={styles.frontPageDeck}>
+            The day is arranged around the clock. Tap any story tile to hear it aloud before the alarm speaks the edition in the morning.
+          </Text>
+          <View style={styles.storyList}>
+            {[topStory, secondTopStory, trendingStory].map((story, index) => (
+              <Pressable
+                key={`${story?.link ?? 'placeholder'}-${index}`}
+                onPress={() => readStory(story?.title, story?.source)}
+                style={({ pressed }) => [styles.storyRow, pressed && styles.pressedCard]}
+              >
+                <Text style={styles.storyIndex}>{String(index + 1).padStart(2, '0')}</Text>
+                <View style={styles.storyBody}>
+                  <Text style={styles.storyTitle}>{story?.title ?? (isLoading ? 'Loading edition headlines' : 'No headline available')}</Text>
+                  <Text style={styles.storySource}>{story?.source ?? 'Morning Edition'}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        </Animated.View>
+      </ScrollView>
+
+      <Animated.View style={[styles.footerShell, footerStyle]}>
+        <View style={styles.footerCopyBlock}>
+          <Text style={styles.footerTitle}>Tomorrow is already typeset.</Text>
+          <Text style={styles.footerSubtitle}>
+            {edition ? `Alarm briefing will speak top, local, and trending stories for ${edition.locationLabel}.` : 'Alarm briefing will read the latest edition once the feed lands.'}
+          </Text>
+        </View>
+        <View style={styles.footerActions}>
+          <Pressable onPress={handleOpenActivities} style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressedCard]}>
+            <Text style={styles.secondaryActionText}>View day</Text>
+          </Pressable>
+          <GlowButton label="Set Alarm" onPress={handleSetAlarm} variant="calm" fullWidth={false} size="compact" />
+        </View>
       </Animated.View>
     </Screen>
   )
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+const orbitCardBase = {
+  position: 'absolute' as const,
+  width: '43%' as const,
+}
 
 const styles = StyleSheet.create({
   screen: {
     justifyContent: 'space-between',
   },
-  top: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  scrollContent: {
+    gap: spacing.xl,
+    paddingBottom: spacing.xl,
+  },
+  masthead: {
     alignItems: 'center',
+    gap: spacing.sm,
     paddingTop: spacing.sm,
   },
-  brand: {
-    fontSize: type.brandSize,
-    fontWeight: type.brandWeight,
-    letterSpacing: type.brandLetterSpacing,
-    color: 'rgba(240, 234, 214, 0.3)',
-    textTransform: 'uppercase',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  pickerBlock: {
-    alignItems: 'center',
-    gap: spacing.xl,
-  },
-  label: {
+  editionLine: {
     fontSize: type.labelSize,
     fontWeight: type.labelWeight,
     letterSpacing: type.labelLetterSpacing,
-    color: 'rgba(240, 234, 214, 0.35)',
+    color: colors.edition.muted,
     textTransform: 'uppercase',
   },
-  confirmation: {
+  mastheadRule: {
+    width: '100%',
+    height: 1,
+    backgroundColor: colors.edition.panelBorder,
+  },
+  centeredMark: {
+    alignItems: 'center',
+  },
+  locationLine: {
     fontSize: type.sublabelSize,
     fontWeight: type.sublabelWeight,
-    color: 'rgba(240, 234, 214, 0.35)',
-    letterSpacing: 0.2,
-    marginTop: spacing.sm,
+    color: colors.edition.body,
   },
-  confirmationAccent: {
-    color: palette.amber400,
+  featureStage: {
+    position: 'relative',
+    minHeight: 540,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  orbitCard: {
+    backgroundColor: colors.edition.panelBg,
+    borderColor: colors.edition.panelBorder,
+    borderWidth: 1,
+    borderRadius: radius.xl,
+    padding: spacing.md,
+    gap: spacing.xs,
+    ...shadows.cardRaised,
+  },
+  weatherCard: {
+    ...orbitCardBase,
+    top: 12,
+    left: 0,
+  },
+  localCard: {
+    ...orbitCardBase,
+    top: 34,
+    right: 0,
+  },
+  topStoryCard: {
+    ...orbitCardBase,
+    bottom: 86,
+    left: 8,
+  },
+  trendingCard: {
+    ...orbitCardBase,
+    bottom: 54,
+    right: 0,
+  },
+  pressedCard: {
+    opacity: 0.88,
+  },
+  cardEyebrow: {
+    fontSize: type.labelSize,
+    fontWeight: type.labelWeight,
+    letterSpacing: type.labelLetterSpacing,
+    color: colors.edition.accent,
+    textTransform: 'uppercase',
+  },
+  cardHeadline: {
+    fontSize: type.ctaSize,
     fontWeight: type.ctaWeight,
+    color: colors.edition.headline,
+    lineHeight: 24,
   },
-  bottom: {
-    gap: spacing.lg,
-    paddingBottom: spacing.md,
+  cardMeta: {
+    fontSize: type.sublabelSize,
+    fontWeight: type.sublabelWeight,
+    color: colors.edition.body,
+    lineHeight: 18,
   },
-  divider: {
-    height: 1,
-    backgroundColor: colors.wake.divider,
+  clockShell: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+    backgroundColor: colors.edition.panelStrong,
+    borderWidth: 10,
+    borderColor: colors.edition.clockBorder,
+    ...shadows.cardRaised,
+  },
+  clockEyebrow: {
+    fontSize: type.labelSize,
+    fontWeight: type.labelWeight,
+    letterSpacing: type.labelLetterSpacing,
+    color: colors.edition.muted,
+    textTransform: 'uppercase',
+  },
+  clockLabel: {
+    fontSize: type.headlineSize,
+    fontWeight: type.headlineWeight,
+    color: colors.edition.headline,
+  },
+  clockNote: {
+    fontSize: type.sublabelSize,
+    fontWeight: type.sublabelWeight,
+    color: colors.edition.body,
+    textAlign: 'center',
+    maxWidth: 180,
+  },
+  frontPagePanel: {
+    backgroundColor: colors.edition.panelBg,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.edition.panelBorder,
+    padding: spacing.xl,
+    gap: spacing.md,
+    ...shadows.cardRaised,
+  },
+  frontPageTitle: {
+    fontSize: type.headlineSize,
+    fontWeight: type.headlineWeight,
+    color: colors.edition.headline,
+    textAlign: 'center',
+  },
+  frontPageDeck: {
+    fontSize: type.bodySize,
+    fontWeight: type.bodyWeight,
+    color: colors.edition.body,
+    lineHeight: 24,
+    textAlign: 'center',
+  },
+  storyList: {
+    gap: spacing.sm,
+  },
+  storyRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    alignItems: 'flex-start',
+    paddingVertical: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.edition.panelBorder,
+  },
+  storyIndex: {
+    width: 28,
+    fontSize: type.labelSize,
+    fontWeight: type.labelWeight,
+    letterSpacing: type.labelLetterSpacing,
+    color: colors.edition.accent,
+    textTransform: 'uppercase',
+  },
+  storyBody: {
+    flex: 1,
+    gap: 4,
+  },
+  storyTitle: {
+    fontSize: type.ctaSize,
+    fontWeight: type.ctaWeight,
+    color: colors.edition.headline,
+    lineHeight: 24,
+  },
+  storySource: {
+    fontSize: type.sublabelSize,
+    fontWeight: type.sublabelWeight,
+    color: colors.edition.body,
+  },
+  footerShell: {
+    borderTopWidth: 1,
+    borderTopColor: colors.edition.panelBorder,
+    paddingTop: spacing.lg,
+    gap: spacing.md,
+  },
+  footerCopyBlock: {
+    gap: 4,
+  },
+  footerTitle: {
+    fontSize: type.ctaSize,
+    fontWeight: type.ctaWeight,
+    color: colors.edition.headline,
+    textAlign: 'center',
+  },
+  footerSubtitle: {
+    fontSize: type.sublabelSize,
+    fontWeight: type.sublabelWeight,
+    color: colors.edition.body,
+    textAlign: 'center',
+  },
+  footerActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    alignItems: 'center',
+  },
+  secondaryAction: {
+    paddingVertical: spacing.md - 2,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.edition.panelBorder,
+    backgroundColor: colors.edition.accentSoft,
+  },
+  secondaryActionText: {
+    fontSize: type.ctaSize,
+    fontWeight: type.ctaWeight,
+    color: colors.edition.headline,
   },
 })

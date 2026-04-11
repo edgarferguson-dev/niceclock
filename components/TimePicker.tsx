@@ -4,12 +4,10 @@ import * as Haptics from 'expo-haptics'
 import { colors, type, spacing, palette } from '../constants/theme'
 
 interface TimePickerProps {
-  /** "07:30" 24h format */
   value: string
   onChange: (value: string) => void
+  tone?: 'dark' | 'paper'
 }
-
-// ─── Time math ───────────────────────────────────────────────────────────────
 
 function parse(value: string): { hour: number; minutes: number; ampm: 'AM' | 'PM' } {
   const [hStr, mStr] = value.split(':')
@@ -27,85 +25,79 @@ function format(hour: number, minutes: number, ampm: 'AM' | 'PM'): string {
   return `${String(h24).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
 }
 
-// ─── Column ──────────────────────────────────────────────────────────────────
-
 function Column({
   value,
   onUp,
   onDown,
+  tone,
 }: {
   value: string
   onUp: () => void
   onDown: () => void
+  tone: 'dark' | 'paper'
 }) {
+  const chevronColor = tone === 'paper' ? 'rgba(90, 80, 72, 0.5)' : 'rgba(240, 234, 214, 0.35)'
+  const pressedColor = tone === 'paper' ? 'rgba(200, 121, 58, 0.08)' : 'rgba(240, 234, 214, 0.07)'
+  const digitColor = tone === 'paper' ? colors.edition.headline : colors.wake.clockText
+
   return (
     <View style={styles.column}>
       <Pressable
         onPress={onUp}
-        style={({ pressed }) => [styles.chevron, pressed && styles.chevronPressed]}
+        style={({ pressed }) => [styles.chevron, pressed && { backgroundColor: pressedColor }]}
         hitSlop={12}
       >
-        <Text style={styles.chevronText}>↑</Text>
+        <Text style={[styles.chevronText, { color: chevronColor }]}>?</Text>
       </Pressable>
 
-      <Text style={styles.digit}>{value}</Text>
+      <Text style={[styles.digit, { color: digitColor }]}>{value}</Text>
 
       <Pressable
         onPress={onDown}
-        style={({ pressed }) => [styles.chevron, pressed && styles.chevronPressed]}
+        style={({ pressed }) => [styles.chevron, pressed && { backgroundColor: pressedColor }]}
         hitSlop={12}
       >
-        <Text style={styles.chevronText}>↓</Text>
+        <Text style={[styles.chevronText, { color: chevronColor }]}>?</Text>
       </Pressable>
     </View>
   )
 }
 
-// ─── AM/PM toggle ─────────────────────────────────────────────────────────────
-
 function AmPmToggle({
   value,
   onToggle,
+  tone,
 }: {
   value: 'AM' | 'PM'
   onToggle: () => void
+  tone: 'dark' | 'paper'
 }) {
+  const optionColor = tone === 'paper' ? 'rgba(90, 80, 72, 0.45)' : 'rgba(240, 234, 214, 0.2)'
+
   return (
     <Pressable
       onPress={onToggle}
       style={styles.ampmContainer}
       hitSlop={8}
     >
-      <Text style={[styles.ampmOption, value === 'AM' && styles.ampmActive]}>AM</Text>
-      <Text style={[styles.ampmOption, value === 'PM' && styles.ampmActive]}>PM</Text>
+      <Text style={[styles.ampmOption, { color: optionColor }, value === 'AM' && styles.ampmActive]}>AM</Text>
+      <Text style={[styles.ampmOption, { color: optionColor }, value === 'PM' && styles.ampmActive]}>PM</Text>
     </Pressable>
   )
 }
 
-// ─── TimePicker ───────────────────────────────────────────────────────────────
-
-/**
- * TimePicker — custom column-based time picker for NiceClock settings.
- *
- * Two digit columns (hour, minute) with up/down chevrons.
- * AM/PM toggle stacked vertically to the right.
- * Minutes step in 5-minute increments.
- * Typography mirrors the wake screen clock — same weight, same character.
- * Haptic selection feedback on every adjustment.
- */
-export function TimePicker({ value, onChange }: TimePickerProps) {
+export function TimePicker({ value, onChange, tone = 'dark' }: TimePickerProps) {
   const { hour, minutes, ampm } = parse(value)
+  const separatorColor = tone === 'paper' ? 'rgba(90, 80, 72, 0.3)' : 'rgba(240, 234, 214, 0.2)'
 
   const adjustHour = (delta: number) => {
     Haptics.selectionAsync()
-    // Wrap 1–12
     const next = ((hour - 1 + delta + 12) % 12) + 1
     onChange(format(next, minutes, ampm))
   }
 
   const adjustMinutes = (delta: number) => {
     Haptics.selectionAsync()
-    // Step by 5, wrap 0–55
     const next = ((minutes + delta * 5) + 60) % 60
     onChange(format(hour, next, ampm))
   }
@@ -121,22 +113,22 @@ export function TimePicker({ value, onChange }: TimePickerProps) {
         value={String(hour).padStart(2, '0')}
         onUp={() => adjustHour(1)}
         onDown={() => adjustHour(-1)}
+        tone={tone}
       />
 
-      <Text style={styles.separator}>:</Text>
+      <Text style={[styles.separator, { color: separatorColor }]}>:</Text>
 
       <Column
         value={String(minutes).padStart(2, '0')}
         onUp={() => adjustMinutes(1)}
         onDown={() => adjustMinutes(-1)}
+        tone={tone}
       />
 
-      <AmPmToggle value={ampm} onToggle={toggleAmPm} />
+      <AmPmToggle value={ampm} onToggle={toggleAmPm} tone={tone} />
     </View>
   )
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const DIGIT_SIZE = 76
 
@@ -157,20 +149,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 22,
   },
-  chevronPressed: {
-    backgroundColor: 'rgba(240, 234, 214, 0.07)',
-  },
   chevronText: {
     fontSize: 18,
-    color: 'rgba(240, 234, 214, 0.35)',
     fontWeight: '300',
     lineHeight: 22,
   },
   digit: {
     fontSize: DIGIT_SIZE,
-    fontWeight: type.clockWeight,       // 200 — mirrors the wake screen clock
+    fontWeight: type.clockWeight,
     letterSpacing: type.clockLetterSpacing,
-    color: colors.wake.clockText,
     lineHeight: DIGIT_SIZE + 4,
     includeFontPadding: false,
     minWidth: DIGIT_SIZE + 8,
@@ -179,9 +166,8 @@ const styles = StyleSheet.create({
   separator: {
     fontSize: DIGIT_SIZE * 0.5,
     fontWeight: '200',
-    color: 'rgba(240, 234, 214, 0.2)',
     lineHeight: DIGIT_SIZE,
-    marginBottom: spacing.lg,          // optical alignment with digit baseline
+    marginBottom: spacing.lg,
   },
   ampmContainer: {
     marginLeft: spacing.sm,
@@ -193,10 +179,9 @@ const styles = StyleSheet.create({
     fontSize: type.labelSize,
     fontWeight: type.labelWeight,
     letterSpacing: type.labelLetterSpacing,
-    color: 'rgba(240, 234, 214, 0.2)',
     textTransform: 'uppercase',
   },
   ampmActive: {
-    color: palette.amber400,            // amber when active — same thread as wake screen
+    color: palette.amber400,
   },
 })

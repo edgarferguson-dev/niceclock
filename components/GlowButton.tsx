@@ -16,8 +16,9 @@ interface GlowButtonProps {
   onPress: () => void
   variant?: 'calm' | 'urgent' | 'ghost'
   style?: ViewStyle
-  /** Disable the ambient pulse animation */
   noPulse?: boolean
+  fullWidth?: boolean
+  size?: 'default' | 'compact'
 }
 
 const VARIANTS = {
@@ -41,19 +42,14 @@ const VARIANTS = {
   },
 } as const
 
-/**
- * GlowButton — the primary CTA for NiceClock.
- *
- * Has a built-in ambient pulse animation that runs on loop.
- * Variant determines the color palette (calm=amber wake, urgent=red escalation, ghost=briefing).
- * Haptic feedback fires on press.
- */
 export function GlowButton({
   label,
   onPress,
   variant = 'calm',
   style,
   noPulse = false,
+  fullWidth = true,
+  size = 'default',
 }: GlowButtonProps) {
   const v = VARIANTS[variant]
   const scale = useSharedValue(1)
@@ -101,12 +97,19 @@ export function GlowButton({
   }
 
   return (
-    <Animated.View style={[styles.wrapper, animatedStyle, style]}>
-      {/* Glow halo behind button */}
+    <Animated.View
+      style={[
+        styles.wrapper,
+        fullWidth ? styles.fullWidth : styles.autoWidth,
+        animatedStyle,
+        style,
+      ]}
+    >
       {variant !== 'ghost' && (
         <Animated.View
           style={[
             styles.glowHalo,
+            !fullWidth && styles.compactGlowHalo,
             { backgroundColor: v.glowColor },
             glowStyle,
           ]}
@@ -116,6 +119,7 @@ export function GlowButton({
         onPress={handlePress}
         style={({ pressed }) => [
           styles.button,
+          size === 'compact' && styles.buttonCompact,
           { backgroundColor: v.bg },
           variant === 'ghost' && styles.ghostBorder,
           pressed && styles.pressed,
@@ -130,7 +134,12 @@ export function GlowButton({
 const styles = StyleSheet.create({
   wrapper: {
     position: 'relative',
+  },
+  fullWidth: {
     width: '100%',
+  },
+  autoWidth: {
+    alignSelf: 'flex-start',
   },
   glowHalo: {
     position: 'absolute',
@@ -139,7 +148,10 @@ const styles = StyleSheet.create({
     right: 12,
     bottom: -8,
     borderRadius: radius.xl,
-    // blur effect is approximated via opacity + spread — expo-blur for real blur later
+  },
+  compactGlowHalo: {
+    left: 8,
+    right: 8,
   },
   button: {
     height: 58,
@@ -147,6 +159,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
+  },
+  buttonCompact: {
+    height: 50,
+    paddingHorizontal: spacing.lg,
   },
   ghostBorder: {
     borderWidth: 1,

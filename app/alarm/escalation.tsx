@@ -10,33 +10,28 @@ import Animated, {
 } from 'react-native-reanimated'
 import { router } from 'expo-router'
 
-import { Screen } from '../../components/Screen'
 import { GlowButton } from '../../components/GlowButton'
-import { useAlarm } from '../../context/AlarmContext'
-import { useVoice } from '../../hooks/useVoice'
-import { voiceScripts } from '../../data/mockDay'
+import { ProductMark } from '../../components/ProductMark'
+import { Screen } from '../../components/Screen'
+import { alarmAudioConfig } from '../../constants/audio'
 import { colors, spacing, type } from '../../constants/theme'
+import { useAlarm } from '../../context/AlarmContext'
+import { voiceScripts } from '../../data/mockDay'
+import { useAlarmSound } from '../../hooks/useAlarmSound'
+import { useVoice } from '../../hooks/useVoice'
 
-/**
- * Escalation Screen — the user didn't respond.
- *
- * Visual shift: dark red, harder edges, more intense pulse.
- * Counter shows how many minutes late they are.
- * Voice is more direct.
- * Still premium — not cartoonish alarm bells.
- */
 export default function EscalationScreen() {
   const { confirmAwake, state } = useAlarm()
   const { speak } = useVoice()
+  const { playEscalation, stop } = useAlarmSound()
   const [minutesLate, setMinutesLate] = useState(0)
 
-  // Voice fires 1.5s after escalation screen mounts
   useEffect(() => {
-    const id = setTimeout(() => speak(voiceScripts.escalation), 1500)
+    playEscalation()
+    const id = setTimeout(() => speak(voiceScripts.escalation), alarmAudioConfig.escalation.voiceDelayMs)
     return () => clearTimeout(id)
-  }, [speak])
+  }, [playEscalation, speak])
 
-  // Running counter: how many minutes since escalation fired
   useEffect(() => {
     const firedAt = state.escalationFiredAt ?? Date.now()
 
@@ -50,12 +45,11 @@ export default function EscalationScreen() {
     return () => clearInterval(id)
   }, [state.escalationFiredAt])
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    await stop()
     confirmAwake()
     router.replace('/alarm/briefing')
   }
-
-  // ── Entrance animations ──────────────────────────────────────────────────
 
   const opacity = useSharedValue(0)
   const translateY = useSharedValue(24)
@@ -70,7 +64,6 @@ export default function EscalationScreen() {
     transform: [{ translateY: translateY.value }],
   }))
 
-  // Headline pulse — draws attention without being childish
   const headlinePulse = useSharedValue(1)
   useEffect(() => {
     headlinePulse.value = withRepeat(
@@ -86,8 +79,6 @@ export default function EscalationScreen() {
     transform: [{ scale: headlinePulse.value }],
   }))
 
-  // ── Render ───────────────────────────────────────────────────────────────
-
   return (
     <Screen
       gradient={colors.escalation.gradientColors}
@@ -95,20 +86,17 @@ export default function EscalationScreen() {
       style={styles.screen}
     >
       <Animated.View style={[styles.content, containerStyle]}>
-        {/* Top: overline label */}
         <View style={styles.top}>
-          <Text style={styles.overline}>NICECLOCK</Text>
+          <ProductMark tone="danger" />
         </View>
 
-        {/* Center: message + counter */}
         <View style={styles.center}>
           <Animated.Text style={[styles.headline, headlineStyle]}>
-            You're still{'\n'}in bed.
+            You're still{`\n`}in bed.
           </Animated.Text>
 
           <Text style={styles.subtext}>Your day is already moving.</Text>
 
-          {/* Minutes late counter — only shows if > 0 */}
           {minutesLate > 0 && (
             <View style={styles.counterBlock}>
               <Text style={styles.counterValue}>{minutesLate}</Text>
@@ -119,7 +107,6 @@ export default function EscalationScreen() {
           )}
         </View>
 
-        {/* Bottom: CTA */}
         <View style={styles.bottom}>
           <GlowButton
             label="I'm Up Now"
@@ -142,13 +129,6 @@ const styles = StyleSheet.create({
   },
   top: {
     paddingTop: spacing.sm,
-  },
-  overline: {
-    fontSize: type.brandSize,
-    fontWeight: type.brandWeight,
-    letterSpacing: type.brandLetterSpacing,
-    color: 'rgba(245, 208, 200, 0.25)',
-    textTransform: 'uppercase',
   },
   center: {
     flex: 1,
