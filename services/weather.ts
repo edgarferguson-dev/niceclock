@@ -1,3 +1,4 @@
+import { fetchJson } from './http'
 import type { LocationContext } from './location'
 
 export interface MorningWeather {
@@ -30,10 +31,10 @@ export async function fetchWeather(location: LocationContext): Promise<MorningWe
     timezone: 'auto',
   })
 
-  const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`)
-  if (!response.ok) throw new Error('Weather request failed')
-
-  const data = await response.json()
+  const data = await fetchJson<{
+    current?: { temperature_2m?: number; weather_code?: number }
+    daily?: { temperature_2m_max?: number[]; temperature_2m_min?: number[] }
+  }>(`https://api.open-meteo.com/v1/forecast?${params.toString()}`)
   const currentTemp = Math.round(data.current?.temperature_2m ?? 0)
   const weatherCode = Number(data.current?.weather_code ?? 0)
 

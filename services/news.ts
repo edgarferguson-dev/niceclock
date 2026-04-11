@@ -43,12 +43,12 @@ function buildStorySummary(title: string, description: string): string {
   return 'A concise local briefing for the morning surface.'
 }
 
-function parseGoogleNewsFeed(xml: string, limit: number): MorningStory[] {
+function parseRssFeed(xml: string, limit: number, fallbackSource: string): MorningStory[] {
   return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)]
     .slice(0, limit)
     .map((match) => {
       const block = match[1]
-      const source = getTag(block, 'source') || 'Google News'
+      const source = getTag(block, 'source') || fallbackSource
       const rawTitle = getTag(block, 'title')
       const description = getTag(block, 'description')
       const title = source && rawTitle.endsWith(` - ${source}`)
@@ -65,14 +65,25 @@ function parseGoogleNewsFeed(xml: string, limit: number): MorningStory[] {
     .filter((story) => story.title.length > 0)
 }
 
-export async function fetchNews(location: LocationContext) {
-  const countryCode = 'US'
-  const localQuery = encodeURIComponent(`${location.city} latest news`)
-  const trendingQuery = encodeURIComponent('trending news today')
+const FEEDS = {
+  top: {
+    url: 'https://feeds.npr.org/1001/rss.xml',
+    source: 'NPR',
+  },
+  trending: {
+    url: 'https://feeds.npr.org/1004/rss.xml',
+    source: 'NPR',
+  },
+  local: {
+    url: 'https://gothamist.com/feed',
+    source: 'Gothamist',
+  },
+} as const
 
-  const topFeedUrl = `https://news.google.com/rss?hl=en-US&gl=${countryCode}&ceid=${countryCode}:en`
-  const localFeedUrl = `https://news.google.com/rss/search?q=${localQuery}&hl=en-US&gl=${countryCode}&ceid=${countryCode}:en`
-  const trendingFeedUrl = `https://news.google.com/rss/search?q=${trendingQuery}&hl=en-US&gl=${countryCode}&ceid=${countryCode}:en`
+export async function fetchNews(_location: LocationContext) {
+  const topFeedUrl = FEEDS.top.url
+  const localFeedUrl = FEEDS.local.url
+  const trendingFeedUrl = FEEDS.trending.url
 
   const [topXml, localXml, trendingXml] = await Promise.all([
     fetchText(topFeedUrl),
@@ -81,8 +92,8 @@ export async function fetchNews(location: LocationContext) {
   ])
 
   return {
-    topStories: parseGoogleNewsFeed(topXml, 5),
-    localStories: parseGoogleNewsFeed(localXml, 4),
-    trendingStories: parseGoogleNewsFeed(trendingXml, 4),
+    topStories: parseRssFeed(topXml, 5, FEEDS.top.source),
+    localStories: parseRssFeed(localXml, 4, FEEDS.local.source),
+    trendingStories: parseRssFeed(trendingXml, 4, FEEDS.trending.source),
   }
 }

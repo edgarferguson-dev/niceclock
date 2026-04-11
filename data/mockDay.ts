@@ -90,7 +90,7 @@ export const mockDay: DaySchedule = {
     },
   ],
   lockScreen: {
-    allowedGlances: ['weather', 'leaveBy'],
+    allowedGlances: ['weather', 'leaveBy', 'topTask'],
   },
 }
 
@@ -112,7 +112,7 @@ export function getSelectedLockScreenGlances(day: DaySchedule) {
       case 'topTask':
         return {
           key,
-          label: 'Top task',
+          label: 'Top story',
           value: day.topTask,
         }
     }

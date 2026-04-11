@@ -5,6 +5,36 @@ Updated at the end of every coding pass.
 
 ---
 
+## Session 5 - ElevenLabs Voice Wiring
+**Date:** 2026-04-11
+**Status:** Complete
+
+### What was built
+
+**`hooks/useVoiceNative.ts`** (new)
+- Implemented the native ElevenLabs text-to-speech path behind the existing `useVoice()` API
+- Reads `EXPO_PUBLIC_ELEVENLABS_API_KEY`, `EXPO_PUBLIC_ELEVENLABS_VOICE_ID`, and optional `EXPO_PUBLIC_ELEVENLABS_MODEL_ID` automatically
+- Requests MP3 audio from ElevenLabs, caches it temporarily, and plays it through `expo-audio`
+- Tracks playback completion and cleans up temp files after speech finishes
+- Falls back gracefully to `expo-speech` on web, missing credentials, request failures, or playback issues
+
+**Screens**
+- Updated the wake, escalation, briefing, and activities screens to use the new voice hook without changing their call pattern
+
+**Dependencies**
+- Added `expo-file-system` to support reliable native temp-file playback for generated speech
+
+### What was verified
+
+- `npx tsc --noEmit` passes clean after the voice implementation change
+
+### Key decisions made
+
+- Kept the screen contract unchanged so UI code still just calls `useVoice().speak()`
+- Preferred temp-file playback over a half-supported direct stream so native behavior stays predictable
+
+---
+
 ## Session 4 - Web Load Fix + Verification
 **Date:** 2026-04-10
 **Status:** Complete

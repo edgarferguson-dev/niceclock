@@ -14,8 +14,9 @@ import { ProductMark } from '../components/ProductMark'
 import { Screen } from '../components/Screen'
 import { StatusPill } from '../components/StatusPill'
 import { colors, font, palette, radius, shadows, spacing, type } from '../constants/theme'
-import { getSelectedLockScreenGlances, mockDay } from '../data/mockDay'
+import { mockDay, type LockScreenGlanceKey } from '../data/mockDay'
 import { useCurrentTime } from '../hooks/useCurrentTime'
+import { useMorningBriefing } from '../hooks/useMorningBriefing'
 import { useVoice } from '../hooks/useVoice'
 import {
   buildActivityVoiceLine,
@@ -27,15 +28,47 @@ import {
 export default function ActivitiesScreen() {
   const now = useCurrentTime()
   const { speak } = useVoice()
+  const { data: edition, updatedAt, error } = useMorningBriefing()
 
   const timeline = useMemo(() => getTimelineState(mockDay.activities, now), [now])
+  const liveGlances = useMemo(
+    () =>
+      mockDay.lockScreen.allowedGlances.map((key: LockScreenGlanceKey) => {
+        switch (key) {
+          case 'weather':
+            return {
+              key,
+              label: 'Weather',
+              value: edition
+                ? `${edition.weather.condition} ${edition.weather.temperatureF}F`
+                : `${mockDay.weather.condition} ${mockDay.weather.tempF}F`,
+            }
+          case 'leaveBy':
+            return {
+              key,
+              label: 'Leave by',
+              value: timeline.next
+                ? formatRange(timeline.next.startTime, timeline.next.endTime).split(' - ')[0]
+                : mockDay.leaveBy,
+            }
+          case 'topTask':
+            return {
+              key,
+              label: edition ? 'Top story' : 'Top task',
+              value: edition?.localStories[0]?.title ?? edition?.topStories[0]?.title ?? mockDay.topTask,
+            }
+        }
+      }),
+    [edition, timeline.next]
+  )
+
   const lockScreenSnapshot = useMemo(
     () => createLockScreenSnapshot({
       activities: mockDay.activities,
       now,
-      glances: getSelectedLockScreenGlances(mockDay),
+      glances: liveGlances,
     }),
-    [now]
+    [liveGlances, now]
   )
 
   const topOpacity = useSharedValue(0)
@@ -57,6 +90,11 @@ export default function ActivitiesScreen() {
     : timeline.next
       ? `Next aligned block starts at ${formatRange(timeline.next.startTime, timeline.next.endTime).split(' - ')[0]}`
       : 'No more activity blocks are waiting.'
+  const liveCompanionCopy = error
+    ? 'Live briefing is temporarily unavailable, so the companion falls back to your saved day plan.'
+    : updatedAt
+      ? `Live morning signals refreshed for ${edition?.locationLabel ?? 'your area'}.`
+      : 'This surface already compresses to the same active, next, and glance truth the lock screen will mirror later.'
 
   return (
     <Screen
@@ -101,9 +139,7 @@ export default function ActivitiesScreen() {
         <Animated.View style={[styles.contextGrid, topStyle]}>
           <View style={styles.lockScreenPanel}>
             <Text style={styles.lockTitle}>Read-only companion</Text>
-            <Text style={styles.lockCopy}>
-              This surface already compresses to the same active, next, and glance truth the lock screen will mirror later.
-            </Text>
+            <Text style={styles.lockCopy}>{liveCompanionCopy}</Text>
             <View style={styles.glanceRow}>
               {lockScreenSnapshot.glances.map((glance) => (
                 <View key={glance.key} style={styles.glancePill}>

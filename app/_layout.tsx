@@ -11,10 +11,16 @@ import { initNotificationChannel } from '../hooks/useAlarmNotification'
 // Listens for lock-screen notification taps and routes to the wake screen.
 // Only active on native — expo-notifications does not run on web.
 function NotificationTapHandler() {
-  const { fireAlarm } = useAlarm()
+  const { fireAlarm, state } = useAlarm()
 
   useEffect(() => {
     if (Platform.OS === 'web') return
+
+    const openWakeScreen = () => {
+      if (state.phase !== 'idle') return
+      fireAlarm()
+      router.replace('/alarm/wake')
+    }
 
     // Tell expo-notifications to suppress the system banner while the app is
     // foregrounded (the wake screen is already open and playing audio).
@@ -30,17 +36,33 @@ function NotificationTapHandler() {
 
     initNotificationChannel()
 
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      const data = response?.notification.request.content.data
+      if (data?.type === 'alarm') {
+        openWakeScreen()
+      }
+    })
+
+    const receivedSub = Notifications.addNotificationReceivedListener((notification) => {
+      const data = notification.request.content.data
+      if (data?.type === 'alarm') {
+        openWakeScreen()
+      }
+    })
+
     const sub = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         const data = response.notification.request.content.data
         if (data?.type === 'alarm') {
-          fireAlarm()
-          router.replace('/alarm/wake')
+          openWakeScreen()
         }
       },
     )
-    return () => sub.remove()
-  }, [fireAlarm])
+    return () => {
+      receivedSub.remove()
+      sub.remove()
+    }
+  }, [fireAlarm, state.phase])
 
   return null
 }
