@@ -26,12 +26,20 @@ export async function loadMorningEdition(): Promise<MorningEdition> {
   ])
 
   const locationLabel = `${location.city}${location.region ? `, ${location.region}` : ''}`
-  const leadLocal = stories.localStories[0]?.title ?? 'No local lead available yet.'
-  const leadTop = stories.topStories[0]?.title ?? 'No top story available yet.'
-  const leadTrending = stories.trendingStories[0]?.title ?? 'No trending story available yet.'
-  const leadScore = localScores[0]
-    ? `${localScores[0].team} ${localScores[0].teamScore ?? ''} ${localScores[0].opponent} ${localScores[0].opponentScore ?? ''}. ${localScores[0].status}`.replace(/\s+/g, ' ').trim()
-    : 'No local score update yet.'
+  const leadTop = stories.topStories[0]?.title ?? stories.localStories[0]?.title ?? null
+  const topScore = localScores[0]
+
+  // Score phrase only when there's an actual result or a live game — skip upcoming
+  const scorePhrase =
+    topScore && topScore.state !== 'upcoming' && topScore.teamScore
+      ? `${topScore.team} ${topScore.teamScore}, ${topScore.opponent} ${topScore.opponentScore ?? ''}. ${topScore.status}.`
+      : null
+
+  const narrationParts: string[] = [
+    `Good morning. ${weather.temperatureF} and ${weather.condition.toLowerCase()} in ${location.city}.`,
+  ]
+  if (leadTop) narrationParts.push(leadTop + '.')
+  if (scorePhrase) narrationParts.push(scorePhrase)
 
   return {
     locationLabel,
@@ -40,6 +48,6 @@ export async function loadMorningEdition(): Promise<MorningEdition> {
     topStories: stories.topStories,
     trendingStories: stories.trendingStories,
     localScores,
-    narration: `Good morning. In ${location.city}, it's ${weather.temperatureF} degrees and ${weather.condition.toLowerCase()}. Top story: ${leadTop}. Local lead: ${leadLocal}. Local scoreline: ${leadScore}. Trending now: ${leadTrending}`,
+    narration: narrationParts.join(' '),
   }
 }

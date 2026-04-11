@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView } from 'react-native'
 import Animated, {
   useSharedValue,
@@ -14,33 +14,51 @@ import { BriefingCard } from '../../components/BriefingCard'
 import { GlowButton } from '../../components/GlowButton'
 import { useAlarm } from '../../context/AlarmContext'
 import { useAlarmSound } from '../../hooks/useAlarmSound'
+import { useMorningBriefing } from '../../hooks/useMorningBriefing'
 import { useVoice } from '../../hooks/useVoice'
 import { mockDay, voiceScripts } from '../../data/mockDay'
 import { colors, spacing, type, radius } from '../../constants/theme'
 
-/**
- * Briefing Screen - the reward.
- *
- * After confirming awake, the user gets a calm, warm overview of their morning.
- * Cards stagger in. Voice fires after the animation settles.
- * The feeling is: collected, clear, ready.
- */
 export default function BriefingScreen() {
   const { reset } = useAlarm()
   const { speak } = useVoice()
   const { stop } = useAlarmSound()
+  const { data: edition } = useMorningBriefing()
+  const hasSpokenRef = useRef(false)
 
+  // Stop any lingering alarm audio immediately on mount
   useEffect(() => {
     stop()
-    const id = setTimeout(() => speak(voiceScripts.briefing), 900)
+  }, [stop])
+
+  // Speak briefing voice after animation settles.
+  // If edition is already loaded, use live weather in the line.
+  // If not yet loaded, wait a little longer then fall back to the static script.
+  // Once spoken, never re-speak if edition arrives late.
+  useEffect(() => {
+    if (hasSpokenRef.current) return
+
+    const voiceLine = edition
+      ? `Good morning. ${edition.weather.temperatureF} degrees and ${edition.weather.condition.toLowerCase()} in ${edition.locationLabel.split(',')[0]}. Your first block is ${mockDay.firstActivity.label} at ${mockDay.firstActivity.time}. Leave by ${mockDay.leaveBy}.`
+      : voiceScripts.briefing
+
+    const delay = edition ? 900 : 1600
+    const id = setTimeout(() => {
+      if (hasSpokenRef.current) return
+      hasSpokenRef.current = true
+      speak(voiceLine)
+    }, delay)
+
     return () => clearTimeout(id)
-  }, [speak, stop])
+  }, [speak, edition])
 
   const handleDone = async () => {
     await stop()
     reset()
     router.replace('/')
   }
+
+  // — Animations —
 
   const bgOpacity = useSharedValue(0)
   useEffect(() => {
@@ -51,14 +69,8 @@ export default function BriefingScreen() {
   const greetingOpacity = useSharedValue(0)
   const greetingY = useSharedValue(12)
   useEffect(() => {
-    greetingOpacity.value = withDelay(
-      150,
-      withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) })
-    )
-    greetingY.value = withDelay(
-      150,
-      withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) })
-    )
+    greetingOpacity.value = withDelay(150, withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) }))
+    greetingY.value = withDelay(150, withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) }))
   }, [greetingOpacity, greetingY])
   const greetingStyle = useAnimatedStyle(() => ({
     opacity: greetingOpacity.value,
@@ -68,14 +80,8 @@ export default function BriefingScreen() {
   const weatherOpacity = useSharedValue(0)
   const weatherY = useSharedValue(-8)
   useEffect(() => {
-    weatherOpacity.value = withDelay(
-      100,
-      withTiming(1, { duration: 350, easing: Easing.out(Easing.cubic) })
-    )
-    weatherY.value = withDelay(
-      100,
-      withTiming(0, { duration: 350, easing: Easing.out(Easing.cubic) })
-    )
+    weatherOpacity.value = withDelay(100, withTiming(1, { duration: 350, easing: Easing.out(Easing.cubic) }))
+    weatherY.value = withDelay(100, withTiming(0, { duration: 350, easing: Easing.out(Easing.cubic) }))
   }, [weatherOpacity, weatherY])
   const weatherStyle = useAnimatedStyle(() => ({
     opacity: weatherOpacity.value,
@@ -84,25 +90,24 @@ export default function BriefingScreen() {
 
   const ctaOpacity = useSharedValue(0)
   useEffect(() => {
-    ctaOpacity.value = withDelay(
-      800,
-      withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) })
-    )
+    ctaOpacity.value = withDelay(800, withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) }))
   }, [ctaOpacity])
   const ctaStyle = useAnimatedStyle(() => ({ opacity: ctaOpacity.value }))
+
+  // Weather strip: show live data when loaded, graceful text when not yet ready
+  const weatherText = edition
+    ? `${edition.weather.temperatureF}° · ${edition.weather.condition}`
+    : 'Good morning'
 
   return (
     <Screen solidBg={colors.briefing.bg} style={styles.screen}>
       <Animated.View style={[styles.inner, bgStyle]}>
         <Animated.View style={[styles.weatherStrip, weatherStyle]}>
-          <Text style={styles.weatherIcon}>{mockDay.weather.icon}</Text>
-          <Text style={styles.weatherText}>
-            {mockDay.weather.condition} · {mockDay.weather.tempF}°F
-          </Text>
+          <Text style={styles.weatherText}>{weatherText}</Text>
         </Animated.View>
 
         <Animated.View style={[styles.greetingBlock, greetingStyle]}>
-          <Text style={styles.greeting}>{mockDay.greeting}</Text>
+          <Text style={styles.greeting}>Good morning.</Text>
           <Text style={styles.greetingSubtext}>Here's your morning.</Text>
         </Animated.View>
 
@@ -133,6 +138,16 @@ export default function BriefingScreen() {
             icon="✓"
             enterDelay={600}
           />
+
+          {edition?.topStories[0] ? (
+            <BriefingCard
+              label="Top story"
+              value={edition.topStories[0].title}
+              subValue={edition.topStories[0].source}
+              icon="📰"
+              enterDelay={750}
+            />
+          ) : null}
         </ScrollView>
 
         <Animated.View style={[styles.cta, ctaStyle]}>
@@ -163,9 +178,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: radius.pill,
     alignSelf: 'flex-start',
-  },
-  weatherIcon: {
-    fontSize: 14,
   },
   weatherText: {
     fontSize: type.sublabelSize,

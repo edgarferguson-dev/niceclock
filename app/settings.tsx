@@ -25,6 +25,19 @@ function displayTime(time: string): string {
   return `${h12}:${mStr} ${ampm}`
 }
 
+function timeUntilAlarm(alarmTime: string, now: Date): string {
+  const [alarmH, alarmM] = alarmTime.split(':').map(Number)
+  const alarmMinutes = alarmH * 60 + alarmM
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  let diff = alarmMinutes - nowMinutes
+  if (diff <= 0) diff += 24 * 60
+  const hours = Math.floor(diff / 60)
+  const mins = diff % 60
+  if (hours === 0) return `${mins}m`
+  if (mins === 0) return `${hours}h`
+  return `${hours}h ${mins}m`
+}
+
 export default function SettingsScreen() {
   const { state, setAlarmTime, fireAlarm } = useAlarm()
   const [localTime, setLocalTime] = useState(state.alarmTime)
@@ -82,19 +95,10 @@ export default function SettingsScreen() {
           <ProductMark />
         </Animated.View>
 
-        <Animated.View style={[styles.panel, heroStyle]}>
-          <Text style={styles.overline}>Settings</Text>
-          <Text style={styles.headline}>Tune tomorrow's wake without crowding the main surface.</Text>
-          <Text style={styles.copy}>
-            Alarm time, wake configuration, and future display controls live here so the home screen can stay read-only and calm.
-          </Text>
-        </Animated.View>
-
         <Animated.View style={[styles.controlStage, heroStyle]}>
           <View style={styles.panelPrimary}>
             <Text style={styles.sectionLabel}>Alarm time</Text>
             <Text style={styles.valueText}>{displayTime(localTime)}</Text>
-            <Text style={styles.copy}>This is the next wake shown across the morning surface and future read-only companion.</Text>
 
             <View style={styles.pickerShell}>
               <TimePicker value={localTime} onChange={setLocalTime} tone="dark" size="compact" />
@@ -102,21 +106,11 @@ export default function SettingsScreen() {
           </View>
 
           <View style={styles.panelSecondary}>
-            <Text style={styles.sectionLabel}>Home surface impact</Text>
-            <View style={styles.placeholderList}>
-              <View style={styles.placeholderRow}>
-                <Text style={styles.placeholderTitle}>Next wake</Text>
-                <Text style={styles.placeholderMeta}>Updates the lock-screen-facing hero immediately</Text>
-              </View>
-              <View style={styles.placeholderRow}>
-                <Text style={styles.placeholderTitle}>Future content choices</Text>
-                <Text style={styles.placeholderMeta}>Weather, local lead, and scores live here later</Text>
-              </View>
-              <View style={styles.placeholderRow}>
-                <Text style={styles.placeholderTitle}>Wake briefing mix</Text>
-                <Text style={styles.placeholderMeta}>Voice priorities stay here, not on the home surface</Text>
-              </View>
-            </View>
+            <Text style={styles.sectionLabel}>Until wake</Text>
+            <Text style={styles.countdownValue}>{timeUntilAlarm(localTime, now)}</Text>
+            <Text style={styles.countdownMeta}>
+              Alarm fires automatically when the clock reaches this time. Home screen watches the clock every 10 seconds.
+            </Text>
           </View>
         </Animated.View>
       </ScrollView>
@@ -173,14 +167,6 @@ const styles = StyleSheet.create({
   metaDivider: {
     color: colors.wake.surfaceSubtle,
   },
-  panel: {
-    backgroundColor: colors.wake.panelWarm,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.wake.surfaceBorder,
-    padding: spacing.xl,
-    gap: spacing.md,
-  },
   controlStage: {
     gap: spacing.md,
   },
@@ -199,27 +185,6 @@ const styles = StyleSheet.create({
     borderColor: colors.wake.surfaceBorder,
     padding: spacing.lg,
     gap: spacing.sm,
-  },
-  overline: {
-    fontFamily: font.sans,
-    fontSize: type.labelSize,
-    fontWeight: type.labelWeight,
-    letterSpacing: type.labelLetterSpacing,
-    textTransform: 'uppercase',
-    color: colors.wake.surfaceMuted,
-  },
-  headline: {
-    fontFamily: font.editorial,
-    fontSize: type.headlineLargeSize,
-    fontWeight: '600',
-    lineHeight: 40,
-    color: colors.wake.clockText,
-  },
-  copy: {
-    fontFamily: font.sans,
-    fontSize: type.bodySize,
-    lineHeight: 24,
-    color: colors.wake.surfaceMuted,
   },
   sectionLabel: {
     fontFamily: font.sans,
@@ -244,24 +209,17 @@ const styles = StyleSheet.create({
     borderColor: colors.wake.surfaceBorder,
     backgroundColor: 'rgba(8, 18, 34, 0.48)',
   },
-  placeholderList: {
-    gap: spacing.md,
-  },
-  placeholderRow: {
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.wake.surfaceBorder,
-    gap: 4,
-  },
-  placeholderTitle: {
-    fontFamily: font.sans,
-    fontSize: type.ctaSize,
-    fontWeight: type.ctaWeight,
+  countdownValue: {
+    fontFamily: font.editorial,
+    fontSize: type.heroSize - 4,
+    fontWeight: '600',
     color: colors.wake.clockText,
+    letterSpacing: -1,
   },
-  placeholderMeta: {
+  countdownMeta: {
     fontFamily: font.sans,
     fontSize: type.sublabelSize,
+    lineHeight: 19,
     color: colors.wake.surfaceMuted,
   },
   footer: {

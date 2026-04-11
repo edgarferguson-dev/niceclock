@@ -44,12 +44,12 @@ export function createMorningSurfaceSnapshot(input: {
         : 'The rest of the day is still unwritten.',
     weatherLine: input.edition
       ? `${input.edition.weather.temperatureF} degrees - ${input.edition.weather.condition}`
-      : 'Weather loading',
+      : 'Checking conditions',
     weatherSummary: input.edition
       ? `High ${input.edition.weather.highF} degrees and low ${input.edition.weather.lowF} degrees for the next stretch.`
-      : 'Forecast is still coming in.',
-    localLead: input.edition?.localStories[0]?.title ?? 'Local lead loading',
-    localLeadSummary: input.edition?.localStories[0]?.summary ?? 'A concise local briefing will appear here.',
+      : 'Forecast coming in.',
+    localLead: input.edition?.localStories[0]?.title ?? 'Morning brief',
+    localLeadSummary: input.edition?.localStories[0]?.summary ?? 'Local briefing en route.',
     scoreLine: scoreCard
       ? `${scoreCard.team} ${scoreCard.teamScore ?? ''} - ${scoreCard.opponent} ${scoreCard.opponentScore ?? ''}`.replace(/\s+/g, ' ').trim()
       : 'No local score update',
@@ -57,6 +57,6 @@ export function createMorningSurfaceSnapshot(input: {
     scoreItems: input.edition?.localScores ?? [],
     liveNote: input.edition
       ? `Updated for ${input.edition.locationLabel}`
-      : 'Refreshing morning context',
+      : 'Gathering morning signals',
   }
 }

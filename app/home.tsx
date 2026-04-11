@@ -21,8 +21,9 @@ import { createLockScreenSnapshot } from '../lib/activityTimeline'
 import { createMorningSurfaceSnapshot } from '../lib/morningSurface'
 
 export default function HomeScreen() {
-  const { state } = useAlarm()
-  const now = useCurrentTime()
+  const { state, fireAlarm } = useAlarm()
+  // 10s interval so we catch the alarm minute within ~10 seconds of it starting
+  const now = useCurrentTime(10_000)
   const { data: edition, isLoading, error, updatedAt } = useMorningBriefing()
   const { speak } = useVoice()
 
@@ -69,6 +70,17 @@ export default function HomeScreen() {
     opacity: topOpacity.value,
     transform: [{ translateY: topY.value }],
   }))
+
+  // Real alarm trigger: fires when the current wall-clock minute matches alarmTime.
+  // Only active in idle phase. Clears itself once phase changes.
+  useEffect(() => {
+    if (state.phase !== 'idle') return
+    const [alarmH, alarmM] = state.alarmTime.split(':').map(Number)
+    if (now.getHours() === alarmH && now.getMinutes() === alarmM) {
+      fireAlarm()
+      router.replace('/alarm/wake')
+    }
+  }, [now, state.phase, state.alarmTime, fireAlarm])
 
   const statusLine = error
     ? 'Live feed paused'
