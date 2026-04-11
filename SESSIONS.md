@@ -1,10 +1,37 @@
-# NiceClock — Build Sessions
+# NiceClock - Build Sessions
 
 Running log of what was completed each session. Newest first.
 Updated at the end of every coding pass.
 
 ---
 
+## Session 4 - Web Load Fix + Verification
+**Date:** 2026-04-10
+**Status:** Complete
+
+### What was built
+
+app.json (updated)
+- Removed Expo Router baseUrl routing under /niceclock for web
+- Restored normal root-path web output so the app can be served from /
+
+### What was verified
+
+- Expo web export completes successfully
+- Exported web output responds with HTTP 200 when served locally
+- Expo web serves successfully on http://127.0.0.1:8082
+
+### Key decisions made
+
+- Kept the fix narrow to startup/web routing config only
+- Did not modify the in-progress screen/theme/data edits already present in the worktree
+
+### Issues encountered
+
+- Default Expo port 8081 was already occupied on the machine
+- Expo web launches reliably on port 8082
+
+---
 ## Session 3 — Phase 2: Settings + Persistence
 **Date:** 2026-04-08
 **Status:** Complete

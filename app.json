@@ -29,9 +29,6 @@
       "output": "single",
       "bundler": "metro"
     },
-    "experiments": {
-      "baseUrl": "/niceclock"
-    },
     "plugins": [
       "expo-router"
     ]
