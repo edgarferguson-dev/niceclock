@@ -1,0 +1,193 @@
+﻿import React from 'react'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import * as Haptics from 'expo-haptics'
+import { colors, type, spacing, palette } from '../constants/theme'
+
+interface TimePickerProps {
+  /** "07:30" 24h format */
+  value: string
+  onChange: (value: string) => void
+}
+
+// Time math
+function parse(value: string): { hour: number; minutes: number; ampm: 'AM' | 'PM' } {
+  const [hStr, mStr] = value.split(':')
+  const h24 = parseInt(hStr, 10)
+  const minutes = parseInt(mStr, 10)
+  const ampm: 'AM' | 'PM' = h24 < 12 ? 'AM' : 'PM'
+  const hour = h24 % 12 || 12
+  return { hour, minutes, ampm }
+}
+
+function format(hour: number, minutes: number, ampm: 'AM' | 'PM'): string {
+  let h24: number
+  if (ampm === 'AM') h24 = hour === 12 ? 0 : hour
+  else h24 = hour === 12 ? 12 : hour + 12
+  return `${String(h24).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+}
+
+// Column
+function Column({
+  value,
+  onUp,
+  onDown,
+}: {
+  value: string
+  onUp: () => void
+  onDown: () => void
+}) {
+  return (
+    <View style={styles.column}>
+      <Pressable
+        onPress={onUp}
+        style={({ pressed }) => [styles.chevron, pressed && styles.chevronPressed]}
+        hitSlop={12}
+      >
+        <Text style={styles.chevronText}>↑</Text>
+      </Pressable>
+
+      <Text style={styles.digit}>{value}</Text>
+
+      <Pressable
+        onPress={onDown}
+        style={({ pressed }) => [styles.chevron, pressed && styles.chevronPressed]}
+        hitSlop={12}
+      >
+        <Text style={styles.chevronText}>↓</Text>
+      </Pressable>
+    </View>
+  )
+}
+
+// AM/PM toggle
+function AmPmToggle({
+  value,
+  onToggle,
+}: {
+  value: 'AM' | 'PM'
+  onToggle: () => void
+}) {
+  return (
+    <Pressable
+      onPress={onToggle}
+      style={styles.ampmContainer}
+      hitSlop={8}
+    >
+      <Text style={[styles.ampmOption, value === 'AM' && styles.ampmActive]}>AM</Text>
+      <Text style={[styles.ampmOption, value === 'PM' && styles.ampmActive]}>PM</Text>
+    </Pressable>
+  )
+}
+
+/**
+ * TimePicker - custom column-based time picker for NiceClock settings.
+ *
+ * Two digit columns (hour, minute) with up/down chevrons.
+ * AM/PM toggle stacked vertically to the right.
+ * Minutes step in 5-minute increments.
+ * Typography mirrors the wake screen clock.
+ * Haptic selection feedback on every adjustment.
+ */
+export function TimePicker({ value, onChange }: TimePickerProps) {
+  const { hour, minutes, ampm } = parse(value)
+
+  const adjustHour = (delta: number) => {
+    Haptics.selectionAsync()
+    const next = ((hour - 1 + delta + 12) % 12) + 1
+    onChange(format(next, minutes, ampm))
+  }
+
+  const adjustMinutes = (delta: number) => {
+    Haptics.selectionAsync()
+    const next = ((minutes + delta * 5) + 60) % 60
+    onChange(format(hour, next, ampm))
+  }
+
+  const toggleAmPm = () => {
+    Haptics.selectionAsync()
+    onChange(format(hour, minutes, ampm === 'AM' ? 'PM' : 'AM'))
+  }
+
+  return (
+    <View style={styles.container}>
+      <Column
+        value={String(hour).padStart(2, '0')}
+        onUp={() => adjustHour(1)}
+        onDown={() => adjustHour(-1)}
+      />
+
+      <Text style={styles.separator}>:</Text>
+
+      <Column
+        value={String(minutes).padStart(2, '0')}
+        onUp={() => adjustMinutes(1)}
+        onDown={() => adjustMinutes(-1)}
+      />
+
+      <AmPmToggle value={ampm} onToggle={toggleAmPm} />
+    </View>
+  )
+}
+
+const DIGIT_SIZE = 76
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  column: {
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  chevron: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 22,
+  },
+  chevronPressed: {
+    backgroundColor: 'rgba(240, 234, 214, 0.07)',
+  },
+  chevronText: {
+    fontSize: 18,
+    color: 'rgba(240, 234, 214, 0.35)',
+    fontWeight: '300',
+    lineHeight: 22,
+  },
+  digit: {
+    fontSize: DIGIT_SIZE,
+    fontWeight: type.clockWeight,
+    letterSpacing: type.clockLetterSpacing,
+    color: colors.wake.clockText,
+    lineHeight: DIGIT_SIZE + 4,
+    includeFontPadding: false,
+    minWidth: DIGIT_SIZE + 8,
+    textAlign: 'center',
+  },
+  separator: {
+    fontSize: DIGIT_SIZE * 0.5,
+    fontWeight: '200',
+    color: 'rgba(240, 234, 214, 0.2)',
+    lineHeight: DIGIT_SIZE,
+    marginBottom: spacing.lg,
+  },
+  ampmContainer: {
+    marginLeft: spacing.sm,
+    gap: spacing.md,
+    alignItems: 'flex-start',
+    paddingVertical: spacing.sm,
+  },
+  ampmOption: {
+    fontSize: type.labelSize,
+    fontWeight: type.labelWeight,
+    letterSpacing: type.labelLetterSpacing,
+    color: 'rgba(240, 234, 214, 0.2)',
+    textTransform: 'uppercase',
+  },
+  ampmActive: {
+    color: palette.amber400,
+  },
+})

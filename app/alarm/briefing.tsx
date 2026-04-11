@@ -99,11 +99,35 @@ export default function BriefingScreen() {
     ? `${edition.weather.temperatureF}° · ${edition.weather.condition}`
     : 'Good morning'
 
+  // High+low line when available
+  const hiLoText = edition
+    ? `H ${edition.weather.highF}° · L ${edition.weather.lowF}°`
+    : null
+
+  // Scores — show up to 2
+  const scores = edition?.localScores?.slice(0, 2) ?? []
+  const topScore = scores[0]
+
+  // Local story — show if different from top story
+  const topStory = edition?.topStories[0]
+  const localStory = edition?.localStories.find(
+    (s) => s.title !== topStory?.title
+  ) ?? null
+
+  // Card stagger delay: after existing 4 cards (300, 450, 600, 750), continue from 900
+  let nextDelay = 900
+
   return (
     <Screen solidBg={colors.briefing.bg} style={styles.screen}>
       <Animated.View style={[styles.inner, bgStyle]}>
-        <Animated.View style={[styles.weatherStrip, weatherStyle]}>
-          <Text style={styles.weatherText}>{weatherText}</Text>
+        {/* Weather strip with hi/lo */}
+        <Animated.View style={[styles.weatherRow, weatherStyle]}>
+          <View style={styles.weatherStrip}>
+            <Text style={styles.weatherText}>{weatherText}</Text>
+          </View>
+          {hiLoText ? (
+            <Text style={styles.hiLoText}>{hiLoText}</Text>
+          ) : null}
         </Animated.View>
 
         <Animated.View style={[styles.greetingBlock, greetingStyle]}>
@@ -139,13 +163,47 @@ export default function BriefingScreen() {
             enterDelay={600}
           />
 
-          {edition?.topStories[0] ? (
+          {/* Top national story */}
+          {topStory ? (
             <BriefingCard
               label="Top story"
-              value={edition.topStories[0].title}
-              subValue={edition.topStories[0].source}
+              value={topStory.title}
+              subValue={topStory.source}
               icon="📰"
               enterDelay={750}
+            />
+          ) : null}
+
+          {/* Local story — only when it differs from the top story */}
+          {localStory ? (
+            <BriefingCard
+              label="Local"
+              value={localStory.title}
+              subValue={localStory.source}
+              icon="📍"
+              enterDelay={(nextDelay += 150)}
+            />
+          ) : null}
+
+          {/* Sports scores */}
+          {topScore?.teamScore ? (
+            <BriefingCard
+              label={`${topScore.league} · ${topScore.status}`}
+              value={`${topScore.team} ${topScore.teamScore} – ${topScore.opponent} ${topScore.opponentScore ?? ''}`}
+              subValue={topScore.detail}
+              icon="🏀"
+              enterDelay={(nextDelay += 150)}
+            />
+          ) : null}
+
+          {/* Second score if available and final/live */}
+          {scores[1]?.teamScore && scores[1].state !== 'upcoming' ? (
+            <BriefingCard
+              label={`${scores[1].league} · ${scores[1].status}`}
+              value={`${scores[1].team} ${scores[1].teamScore} – ${scores[1].opponent} ${scores[1].opponentScore ?? ''}`}
+              subValue={scores[1].detail}
+              icon="🏒"
+              enterDelay={(nextDelay += 150)}
             />
           ) : null}
         </ScrollView>
@@ -169,6 +227,11 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.xl,
   },
+  weatherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   weatherStrip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -183,6 +246,12 @@ const styles = StyleSheet.create({
     fontSize: type.sublabelSize,
     fontWeight: type.sublabelWeight,
     color: colors.briefing.accent,
+    letterSpacing: 0.1,
+  },
+  hiLoText: {
+    fontSize: type.sublabelSize,
+    fontWeight: type.sublabelWeight,
+    color: colors.briefing.textSecondary,
     letterSpacing: 0.1,
   },
   greetingBlock: {

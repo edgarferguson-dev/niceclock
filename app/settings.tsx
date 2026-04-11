@@ -16,6 +16,8 @@ import { TimePicker } from '../components/TimePicker'
 import { colors, font, radius, spacing, type } from '../constants/theme'
 import { useAlarm } from '../context/AlarmContext'
 import { useCurrentTime } from '../hooks/useCurrentTime'
+import { scheduleAlarmNotification } from '../hooks/useAlarmNotification'
+import { useMorningBriefing } from '../hooks/useMorningBriefing'
 
 function displayTime(time: string): string {
   const [hStr, mStr] = time.split(':')
@@ -42,6 +44,7 @@ export default function SettingsScreen() {
   const { state, setAlarmTime, fireAlarm } = useAlarm()
   const [localTime, setLocalTime] = useState(state.alarmTime)
   const now = useCurrentTime()
+  const { data: edition } = useMorningBriefing()
 
   useEffect(() => {
     setLocalTime(state.alarmTime)
@@ -72,11 +75,15 @@ export default function SettingsScreen() {
 
   const handleSave = () => {
     setAlarmTime(localTime)
+    // Schedule lock-screen notification for the new alarm time. Fire-and-forget
+    // — permission prompt is handled inside; failure is silent for the user.
+    scheduleAlarmNotification(localTime, edition)
     router.back()
   }
 
   const handlePreview = () => {
     setAlarmTime(localTime)
+    scheduleAlarmNotification(localTime, edition)
     fireAlarm()
     router.replace('/alarm/wake')
   }

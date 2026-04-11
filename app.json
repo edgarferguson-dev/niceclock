@@ -37,6 +37,15 @@
         {
           "locationWhenInUsePermission": "NiceClock uses your location to show local weather and nearby headlines in Morning Edition."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#050D1A",
+          "sounds": [],
+          "mode": "production"
+        }
       ]
     ]
   }

@@ -1,12 +1,55 @@
-import { Stack } from 'expo-router'
+import * as Notifications from 'expo-notifications'
+import { router, Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
+import { useEffect } from 'react'
+import { Platform } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import { AlarmProvider } from '../context/AlarmContext'
+
+import { AlarmProvider, useAlarm } from '../context/AlarmContext'
+import { initNotificationChannel } from '../hooks/useAlarmNotification'
+
+// Listens for lock-screen notification taps and routes to the wake screen.
+// Only active on native — expo-notifications does not run on web.
+function NotificationTapHandler() {
+  const { fireAlarm } = useAlarm()
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return
+
+    // Tell expo-notifications to suppress the system banner while the app is
+    // foregrounded (the wake screen is already open and playing audio).
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: false,
+        shouldShowBanner: false,
+        shouldShowList: false,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      }),
+    })
+
+    initNotificationChannel()
+
+    const sub = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        const data = response.notification.request.content.data
+        if (data?.type === 'alarm') {
+          fireAlarm()
+          router.replace('/alarm/wake')
+        }
+      },
+    )
+    return () => sub.remove()
+  }, [fireAlarm])
+
+  return null
+}
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AlarmProvider>
+        <NotificationTapHandler />
         <StatusBar style="light" />
         <Stack
           screenOptions={{

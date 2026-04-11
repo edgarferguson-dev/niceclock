@@ -15,7 +15,7 @@ import { Screen } from '../../components/Screen'
 import { StatusPill } from '../../components/StatusPill'
 import { TimeDisplay } from '../../components/TimeDisplay'
 import { alarmAudioConfig } from '../../constants/audio'
-import { colors, spacing, type } from '../../constants/theme'
+import { colors, font, radius, spacing, type } from '../../constants/theme'
 import { useAlarm } from '../../context/AlarmContext'
 import { voiceScripts } from '../../data/mockDay'
 import { useAlarmSound } from '../../hooks/useAlarmSound'
@@ -71,6 +71,15 @@ export default function WakeScreen() {
   }, [topOpacity])
   const topStyle = useAnimatedStyle(() => ({ opacity: topOpacity.value }))
 
+  const dataOpacity = useSharedValue(0)
+  useEffect(() => {
+    dataOpacity.value = withDelay(
+      600,
+      withTiming(1, { duration: 700, easing: Easing.out(Easing.cubic) })
+    )
+  }, [dataOpacity])
+  const dataStyle = useAnimatedStyle(() => ({ opacity: dataOpacity.value }))
+
   const ctaTranslateY = useSharedValue(32)
   const ctaOpacity = useSharedValue(0)
   useEffect(() => {
@@ -87,6 +96,15 @@ export default function WakeScreen() {
     transform: [{ translateY: ctaTranslateY.value }],
     opacity: ctaOpacity.value,
   }))
+
+  // Build live data rows when edition is ready
+  const topScore = edition?.localScores[0]
+  const hasScore = !!topScore?.teamScore
+  const localLead = edition?.localStories[0]?.title
+  const topLead = edition?.topStories[0]?.title
+
+  // Use local story as the second headline if it differs from the top story
+  const secondLead = localLead && localLead !== topLead ? localLead : null
 
   return (
     <Screen
@@ -110,12 +128,39 @@ export default function WakeScreen() {
 
         <View style={styles.divider} />
 
-        <Animated.View style={topStyle}>
+        <Animated.View style={[styles.promptBlock, topStyle]}>
           <Text style={styles.prompt}>Are you awake?</Text>
-          {edition?.topStories[0]?.title ? (
-            <Text style={styles.storyPrompt}>{edition.topStories[0].title}</Text>
+          {topLead ? (
+            <Text style={styles.storyPrompt} numberOfLines={2}>{topLead}</Text>
           ) : null}
         </Animated.View>
+
+        {/* Live data strip — weather · score · local lead */}
+        {edition ? (
+          <Animated.View style={[styles.liveStrip, dataStyle]}>
+            {/* Weather pill */}
+            <View style={styles.livePill}>
+              <Text style={styles.livePillText}>
+                {edition.weather.temperatureF}° · {edition.weather.condition}
+              </Text>
+            </View>
+
+            {/* Score chip */}
+            {hasScore && topScore ? (
+              <View style={[styles.livePill, styles.livePillScore]}>
+                <View style={[styles.scoreDot, topScore.state === 'live' && styles.scoreDotLive]} />
+                <Text style={styles.livePillText}>
+                  {topScore.team} {topScore.teamScore}–{topScore.opponent} {topScore.opponentScore ?? ''}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Local story if distinct from the top story shown above */}
+            {secondLead ? (
+              <Text style={styles.localLead} numberOfLines={2}>{secondLead}</Text>
+            ) : null}
+          </Animated.View>
+        ) : null}
       </View>
 
       <Animated.View style={[styles.bottom, ctaStyle]}>
@@ -150,6 +195,10 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.wake.divider,
   },
+  promptBlock: {
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   prompt: {
     fontSize: type.sublabelSize,
     fontWeight: type.sublabelWeight,
@@ -158,12 +207,55 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   storyPrompt: {
-    marginTop: spacing.sm,
     maxWidth: 260,
     fontSize: type.sublabelSize,
     fontWeight: type.sublabelWeight,
     color: 'rgba(240, 234, 214, 0.68)',
     lineHeight: 20,
+    textAlign: 'center',
+  },
+  liveStrip: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  livePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: 5,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(8, 18, 34, 0.62)',
+    borderWidth: 1,
+    borderColor: colors.wake.surfaceBorder,
+  },
+  livePillScore: {
+    backgroundColor: 'rgba(8, 18, 34, 0.44)',
+  },
+  livePillText: {
+    fontFamily: font.sans,
+    fontSize: 12,
+    fontWeight: '500',
+    color: 'rgba(240, 234, 214, 0.72)',
+    letterSpacing: 0.1,
+  },
+  scoreDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(240, 234, 214, 0.28)',
+  },
+  scoreDotLive: {
+    backgroundColor: '#F5C97A',
+  },
+  localLead: {
+    maxWidth: 264,
+    fontFamily: font.sans,
+    fontSize: 12,
+    fontWeight: '400',
+    color: 'rgba(240, 234, 214, 0.48)',
+    lineHeight: 18,
     textAlign: 'center',
   },
   bottom: {
