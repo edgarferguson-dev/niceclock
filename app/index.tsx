@@ -21,7 +21,7 @@ export default function Index() {
   }
 
   const destinations: Record<typeof state.phase, string> = {
-    idle: '/settings',
+    idle: '/home',
     wake: '/alarm/wake',
     escalation: '/alarm/escalation',
     briefing: '/alarm/briefing',

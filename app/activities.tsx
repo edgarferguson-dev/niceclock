@@ -13,7 +13,7 @@ import { ActivityCard } from '../components/ActivityCard'
 import { ProductMark } from '../components/ProductMark'
 import { Screen } from '../components/Screen'
 import { StatusPill } from '../components/StatusPill'
-import { colors, palette, radius, spacing, type } from '../constants/theme'
+import { colors, font, palette, radius, shadows, spacing, type } from '../constants/theme'
 import { getSelectedLockScreenGlances, mockDay } from '../data/mockDay'
 import { useCurrentTime } from '../hooks/useCurrentTime'
 import { useVoice } from '../hooks/useVoice'
@@ -64,13 +64,17 @@ export default function ActivitiesScreen() {
       gradientLocations={[0, 0.55, 1] as const}
       style={styles.screen}
     >
+      <View pointerEvents="none" style={styles.atmosphereTop} />
+      <View pointerEvents="none" style={styles.atmosphereBottom} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Animated.View style={[styles.topRow, topStyle]}>
-          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
-            <Text style={styles.backLabel}>Back</Text>
-          </Pressable>
+          <View style={styles.navRow}>
+            <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
+              <Text style={styles.backLabel}>Back</Text>
+            </Pressable>
+            <StatusPill label={timeline.active ? 'Live now' : 'Upcoming'} variant="dot" />
+          </View>
           <ProductMark />
-          <StatusPill label={timeline.active ? 'Live now' : 'Upcoming'} variant="dot" />
         </Animated.View>
 
         <Animated.View style={[styles.heroPanel, topStyle]}>
@@ -94,18 +98,27 @@ export default function ActivitiesScreen() {
           </View>
         </Animated.View>
 
-        <Animated.View style={[styles.lockScreenPanel, topStyle]}>
-          <Text style={styles.lockTitle}>Read-only companion</Text>
-          <Text style={styles.lockCopy}>
-            This layer already mirrors the same active and next activity truth the lock screen will use later.
-          </Text>
-          <View style={styles.glanceRow}>
-            {lockScreenSnapshot.glances.map((glance) => (
-              <View key={glance.key} style={styles.glancePill}>
-                <Text style={styles.glanceLabel}>{glance.label}</Text>
-                <Text style={styles.glanceValue}>{glance.value}</Text>
-              </View>
-            ))}
+        <Animated.View style={[styles.contextGrid, topStyle]}>
+          <View style={styles.lockScreenPanel}>
+            <Text style={styles.lockTitle}>Read-only companion</Text>
+            <Text style={styles.lockCopy}>
+              This surface already compresses to the same active, next, and glance truth the lock screen will mirror later.
+            </Text>
+            <View style={styles.glanceRow}>
+              {lockScreenSnapshot.glances.map((glance) => (
+                <View key={glance.key} style={styles.glancePill}>
+                  <Text style={styles.glanceLabel}>{glance.label}</Text>
+                  <Text style={styles.glanceValue}>{glance.value}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.helperPanel}>
+            <Text style={styles.lockTitle}>Tap to hear</Text>
+            <Text style={styles.lockCopy}>
+              Each card reads the title, time range, and a single supporting detail so the day stays skimmable.
+            </Text>
           </View>
         </Animated.View>
 
@@ -133,6 +146,24 @@ const styles = StyleSheet.create({
   screen: {
     justifyContent: 'space-between',
   },
+  atmosphereTop: {
+    position: 'absolute',
+    top: -70,
+    right: -40,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: colors.wake.overlayTop,
+  },
+  atmosphereBottom: {
+    position: 'absolute',
+    bottom: 120,
+    left: -50,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(245, 201, 122, 0.05)',
+  },
   content: {
     gap: spacing.xl,
     paddingTop: spacing.sm,
@@ -140,6 +171,11 @@ const styles = StyleSheet.create({
   },
   topRow: {
     gap: spacing.md,
+  },
+  navRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   backButton: {
     alignSelf: 'flex-start',
@@ -161,14 +197,16 @@ const styles = StyleSheet.create({
     opacity: 0.84,
   },
   heroPanel: {
-    backgroundColor: colors.wake.surfaceStrong,
+    backgroundColor: colors.wake.panelWarm,
     borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: 'rgba(245, 201, 122, 0.22)',
     padding: spacing.xl,
     gap: spacing.md,
+    ...shadows.cardLuxury,
   },
   overline: {
+    fontFamily: font.sans,
     fontSize: type.labelSize,
     fontWeight: type.labelWeight,
     letterSpacing: type.labelLetterSpacing,
@@ -176,13 +214,15 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   heroHeadline: {
-    fontSize: type.headlineLargeSize,
-    fontWeight: type.headlineWeight,
-    letterSpacing: type.headlineLetterSpacing,
+    fontFamily: font.editorial,
+    fontSize: type.heroSize,
+    fontWeight: '600',
+    letterSpacing: type.heroLetterSpacing,
     color: colors.wake.clockText,
-    lineHeight: 42,
+    lineHeight: 52,
   },
   heroCopy: {
+    fontFamily: font.sans,
     fontSize: type.bodySize,
     fontWeight: type.bodyWeight,
     lineHeight: 24,
@@ -192,7 +232,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   summaryCard: {
-    backgroundColor: 'rgba(240, 234, 214, 0.04)',
+    backgroundColor: 'rgba(240, 234, 214, 0.05)',
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.wake.surfaceBorder,
@@ -200,6 +240,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   summaryLabel: {
+    fontFamily: font.sans,
     fontSize: type.labelSize,
     fontWeight: type.labelWeight,
     letterSpacing: type.labelLetterSpacing,
@@ -207,17 +248,30 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   summaryValue: {
+    fontFamily: font.editorial,
     fontSize: type.ctaSize,
-    fontWeight: type.ctaWeight,
+    fontWeight: '600',
     color: colors.wake.clockText,
   },
   summarySubvalue: {
+    fontFamily: font.sans,
     fontSize: type.sublabelSize,
     fontWeight: type.sublabelWeight,
     color: colors.wake.surfaceMuted,
   },
+  contextGrid: {
+    gap: spacing.md,
+  },
   lockScreenPanel: {
-    backgroundColor: colors.wake.surfaceBg,
+    backgroundColor: colors.wake.panelCool,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.wake.surfaceBorder,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  helperPanel: {
+    backgroundColor: 'rgba(9, 17, 31, 0.62)',
     borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: colors.wake.surfaceBorder,
@@ -225,11 +279,13 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   lockTitle: {
+    fontFamily: font.editorial,
     fontSize: type.ctaSize,
-    fontWeight: type.ctaWeight,
+    fontWeight: '600',
     color: colors.wake.clockText,
   },
   lockCopy: {
+    fontFamily: font.sans,
     fontSize: type.sublabelSize,
     fontWeight: type.sublabelWeight,
     color: colors.wake.surfaceMuted,
@@ -251,6 +307,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   glanceLabel: {
+    fontFamily: font.sans,
     fontSize: type.labelSize,
     fontWeight: type.labelWeight,
     letterSpacing: type.labelLetterSpacing,
@@ -258,6 +315,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   glanceValue: {
+    fontFamily: font.sans,
     fontSize: type.sublabelSize,
     fontWeight: type.sublabelWeight,
     color: colors.wake.clockText,
@@ -266,6 +324,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   sectionLabel: {
+    fontFamily: font.sans,
     fontSize: type.labelSize,
     fontWeight: type.labelWeight,
     letterSpacing: type.labelLetterSpacing,
@@ -273,6 +332,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   sectionHint: {
+    fontFamily: font.sans,
     fontSize: type.sublabelSize,
     fontWeight: type.sublabelWeight,
     color: colors.wake.surfaceSubtle,

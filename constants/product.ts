@@ -1,4 +1,4 @@
 export const productCopy = {
-  heading: 'MORNING EDITION',
-  subheading: 'NICECLOCK DAILY',
+  heading: 'NiceClock',
+  subheading: 'Tomorrow, arranged',
 } as const

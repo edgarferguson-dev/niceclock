@@ -8,7 +8,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated'
 import * as Haptics from 'expo-haptics'
-import { colors, palette, radius, shadows, spacing, type } from '../constants/theme'
+import { colors, font, palette, radius, shadows, spacing, type } from '../constants/theme'
 import type { ActivityState, TimelineActivity } from '../lib/activityTimeline'
 import { formatRange } from '../lib/activityTimeline'
 
@@ -27,7 +27,7 @@ const CARD_STYLES: Record<ActivityState, {
   timeColor: string
 }> = {
   active: {
-    backgroundColor: 'rgba(14, 29, 53, 0.86)',
+    backgroundColor: 'rgba(16, 31, 55, 0.9)',
     borderColor: 'rgba(245, 201, 122, 0.48)',
     labelColor: palette.amber400,
     titleColor: colors.wake.clockText,
@@ -35,7 +35,7 @@ const CARD_STYLES: Record<ActivityState, {
     timeColor: 'rgba(245, 201, 122, 0.9)',
   },
   upcoming: {
-    backgroundColor: 'rgba(9, 20, 38, 0.72)',
+    backgroundColor: 'rgba(9, 20, 38, 0.78)',
     borderColor: 'rgba(240, 234, 214, 0.08)',
     labelColor: 'rgba(240, 234, 214, 0.34)',
     titleColor: 'rgba(240, 234, 214, 0.92)',
@@ -43,7 +43,7 @@ const CARD_STYLES: Record<ActivityState, {
     timeColor: 'rgba(139, 156, 176, 0.95)',
   },
   past: {
-    backgroundColor: 'rgba(8, 15, 29, 0.4)',
+    backgroundColor: 'rgba(8, 15, 29, 0.48)',
     borderColor: 'rgba(240, 234, 214, 0.04)',
     labelColor: 'rgba(240, 234, 214, 0.2)',
     titleColor: 'rgba(240, 234, 214, 0.42)',
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: spacing.lg,
     gap: spacing.sm,
-    ...shadows.cardRaised,
+    ...shadows.cardLuxury,
   },
   activeCard: {
     shadowColor: palette.amber500,
@@ -139,19 +139,22 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   label: {
+    fontFamily: font.sans,
     fontSize: type.labelSize,
     fontWeight: type.labelWeight,
     letterSpacing: type.labelLetterSpacing,
     textTransform: 'uppercase',
   },
   timeRange: {
+    fontFamily: font.sans,
     fontSize: type.sublabelSize,
     fontWeight: type.sublabelWeight,
   },
   title: {
-    fontSize: type.cardValueSize,
-    fontWeight: type.cardValueWeight,
-    letterSpacing: type.cardValueLetterSpacing,
+    fontFamily: font.editorial,
+    fontSize: type.headlineSize,
+    fontWeight: '600',
+    letterSpacing: type.headlineLetterSpacing,
   },
   footerRow: {
     flexDirection: 'row',
@@ -161,6 +164,7 @@ const styles = StyleSheet.create({
   },
   detail: {
     flex: 1,
+    fontFamily: font.sans,
     fontSize: type.sublabelSize,
     fontWeight: type.sublabelWeight,
     lineHeight: 20,

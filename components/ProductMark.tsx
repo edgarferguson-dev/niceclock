@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { productCopy } from '../constants/product'
-import { palette, spacing, type } from '../constants/theme'
+import { font, palette, spacing, type } from '../constants/theme'
 
 interface ProductMarkProps {
   tone?: 'light' | 'warm' | 'danger'
@@ -42,15 +42,16 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   subheading: {
+    fontFamily: font.sans,
     fontSize: type.labelSize,
     fontWeight: type.labelWeight,
     letterSpacing: type.labelLetterSpacing,
     textTransform: 'uppercase',
   },
   heading: {
-    fontSize: type.brandSize,
-    fontWeight: type.brandWeight,
-    letterSpacing: type.brandLetterSpacing,
-    textTransform: 'uppercase',
+    fontFamily: font.editorial,
+    fontSize: type.editorialSize,
+    fontWeight: type.editorialWeight,
+    letterSpacing: type.editorialLetterSpacing,
   },
 })

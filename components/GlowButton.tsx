@@ -9,7 +9,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated'
 import * as Haptics from 'expo-haptics'
-import { type, radius, spacing, colors } from '../constants/theme'
+import { type, radius, spacing, colors, font } from '../constants/theme'
 
 interface GlowButtonProps {
   label: string
@@ -172,6 +172,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   label: {
+    fontFamily: font.sans,
     fontSize: type.ctaSize,
     fontWeight: type.ctaWeight,
     letterSpacing: type.ctaLetterSpacing,

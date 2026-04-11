@@ -16,6 +16,7 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="index" />
+          <Stack.Screen name="home" options={{ animation: 'fade' }} />
           <Stack.Screen name="settings" options={{ animation: 'fade' }} />
           <Stack.Screen name="activities" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="alarm/wake" />

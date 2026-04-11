@@ -1,12 +1,13 @@
 import React from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import * as Haptics from 'expo-haptics'
-import { colors, type, spacing, palette } from '../constants/theme'
+import { colors, type, spacing, palette, font } from '../constants/theme'
 
 interface TimePickerProps {
   value: string
   onChange: (value: string) => void
   tone?: 'dark' | 'paper'
+  size?: 'hero' | 'compact'
 }
 
 function parse(value: string): { hour: number; minutes: number; ampm: 'AM' | 'PM' } {
@@ -30,15 +31,18 @@ function Column({
   onUp,
   onDown,
   tone,
+  size,
 }: {
   value: string
   onUp: () => void
   onDown: () => void
   tone: 'dark' | 'paper'
+  size: 'hero' | 'compact'
 }) {
   const chevronColor = tone === 'paper' ? 'rgba(90, 80, 72, 0.5)' : 'rgba(240, 234, 214, 0.35)'
   const pressedColor = tone === 'paper' ? 'rgba(200, 121, 58, 0.08)' : 'rgba(240, 234, 214, 0.07)'
   const digitColor = tone === 'paper' ? colors.edition.headline : colors.wake.clockText
+  const digitSize = size === 'compact' ? 52 : 76
 
   return (
     <View style={styles.column}>
@@ -47,17 +51,17 @@ function Column({
         style={({ pressed }) => [styles.chevron, pressed && { backgroundColor: pressedColor }]}
         hitSlop={12}
       >
-        <Text style={[styles.chevronText, { color: chevronColor }]}>?</Text>
+        <Text style={[styles.chevronText, { color: chevronColor }]}>+</Text>
       </Pressable>
 
-      <Text style={[styles.digit, { color: digitColor }]}>{value}</Text>
+      <Text style={[styles.digit, { color: digitColor, fontSize: digitSize, lineHeight: digitSize + 4, minWidth: digitSize + 8 }]}>{value}</Text>
 
       <Pressable
         onPress={onDown}
         style={({ pressed }) => [styles.chevron, pressed && { backgroundColor: pressedColor }]}
         hitSlop={12}
       >
-        <Text style={[styles.chevronText, { color: chevronColor }]}>?</Text>
+        <Text style={[styles.chevronText, { color: chevronColor }]}>-</Text>
       </Pressable>
     </View>
   )
@@ -67,10 +71,12 @@ function AmPmToggle({
   value,
   onToggle,
   tone,
+  size: _size,
 }: {
   value: 'AM' | 'PM'
   onToggle: () => void
   tone: 'dark' | 'paper'
+  size: 'hero' | 'compact'
 }) {
   const optionColor = tone === 'paper' ? 'rgba(90, 80, 72, 0.45)' : 'rgba(240, 234, 214, 0.2)'
 
@@ -86,9 +92,10 @@ function AmPmToggle({
   )
 }
 
-export function TimePicker({ value, onChange, tone = 'dark' }: TimePickerProps) {
+export function TimePicker({ value, onChange, tone = 'dark', size = 'hero' }: TimePickerProps) {
   const { hour, minutes, ampm } = parse(value)
   const separatorColor = tone === 'paper' ? 'rgba(90, 80, 72, 0.3)' : 'rgba(240, 234, 214, 0.2)'
+  const digitSize = size === 'compact' ? 52 : 76
 
   const adjustHour = (delta: number) => {
     Haptics.selectionAsync()
@@ -114,23 +121,23 @@ export function TimePicker({ value, onChange, tone = 'dark' }: TimePickerProps) 
         onUp={() => adjustHour(1)}
         onDown={() => adjustHour(-1)}
         tone={tone}
+        size={size}
       />
 
-      <Text style={[styles.separator, { color: separatorColor }]}>:</Text>
+      <Text style={[styles.separator, { color: separatorColor, fontSize: digitSize * 0.5, lineHeight: digitSize, marginBottom: size === 'compact' ? spacing.md : spacing.lg }]}>:</Text>
 
       <Column
         value={String(minutes).padStart(2, '0')}
         onUp={() => adjustMinutes(1)}
         onDown={() => adjustMinutes(-1)}
         tone={tone}
+        size={size}
       />
 
-      <AmPmToggle value={ampm} onToggle={toggleAmPm} tone={tone} />
+      <AmPmToggle value={ampm} onToggle={toggleAmPm} tone={tone} size={size} />
     </View>
   )
 }
-
-const DIGIT_SIZE = 76
 
 const styles = StyleSheet.create({
   container: {
@@ -150,24 +157,21 @@ const styles = StyleSheet.create({
     borderRadius: 22,
   },
   chevronText: {
+    fontFamily: font.sans,
     fontSize: 18,
     fontWeight: '300',
     lineHeight: 22,
   },
   digit: {
-    fontSize: DIGIT_SIZE,
+    fontFamily: font.editorial,
     fontWeight: type.clockWeight,
     letterSpacing: type.clockLetterSpacing,
-    lineHeight: DIGIT_SIZE + 4,
     includeFontPadding: false,
-    minWidth: DIGIT_SIZE + 8,
     textAlign: 'center',
   },
   separator: {
-    fontSize: DIGIT_SIZE * 0.5,
+    fontFamily: font.editorial,
     fontWeight: '200',
-    lineHeight: DIGIT_SIZE,
-    marginBottom: spacing.lg,
   },
   ampmContainer: {
     marginLeft: spacing.sm,
@@ -179,6 +183,7 @@ const styles = StyleSheet.create({
     fontSize: type.labelSize,
     fontWeight: type.labelWeight,
     letterSpacing: type.labelLetterSpacing,
+    fontFamily: font.sans,
     textTransform: 'uppercase',
   },
   ampmActive: {
